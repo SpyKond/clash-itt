@@ -64,7 +64,7 @@ let draggingWallIdx = null, draggingCardIdx = null, fromDock = false, wallRotate
 let lastTouchPos = { x: 0, y: 0, active: false }, lastEnemySpawn = 0;
 
 const CLASS_STATS = {
-    'танк': { cost: 5, hp: 1300, damage: 150, speed: 0.5, size: 22, range: 45, color: '#444', canAttackAir: false },
+    'танк': { cost: 5, hp: 1300, damage: 160, speed: 0.5, size: 22, range: 45, color: '#444', canAttackAir: false, isTank: true },
     'лучник': { cost: 3, hp: 180, damage: 30, speed: 0.9, size: 12, range: 180, color: '#e91e63', canAttackAir: true },
     'ближник': { cost: 2, hp: 350, damage: 35, speed: 1.3, size: 14, range: 45, color: '#ff9800', canAttackAir: false },
     'армия': { cost: 3, hp: 50, damage: 12, speed: 1.4, size: 8, range: 35, isSwarm: true, count: 4, color: '#795548', canAttackAir: false },
@@ -89,29 +89,15 @@ for(let i=0; i<10; i++) {
 function getCard() {
     let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]").filter(c => c !== null);
     if(activeDeck.length === 0) return null;
-
     let data = activeDeck[Math.floor(Math.random() * activeDeck.length)];
-    // Исправление: берем статы через правильный ключ (строчные буквы)
     let classKey = data.class.toLowerCase();
     let base = CLASS_STATS[classKey] || CLASS_STATS['ближник'];
-    
     let mod = 1.0;
     if(data.rarity === 'обычный') mod = 0.95;
     else if(data.rarity === 'редкий') mod = 1.02;
     else if(data.rarity === 'эпический') mod = 1.05;
     else if(data.rarity === 'мифический') mod = 1.10;
-
-    return {
-        ...base,
-        name: data.name,
-        type: data.class.toUpperCase(),
-        rarity: data.rarity,
-        rating: data.rating,
-        hp: base.hp * mod,
-        curHp: base.hp * mod,
-        damage: base.damage * mod,
-        cost: base.cost
-    };
+    return { ...base, name: data.name, type: data.class.toUpperCase(), rarity: data.rarity, rating: data.rating, hp: base.hp * mod, curHp: base.hp * mod, damage: base.damage * mod, cost: base.cost };
 }
 
 function startGame() {
@@ -132,13 +118,7 @@ function startCountdown() {
         count--;
         if(count > 0) document.getElementById('countdown').innerText = count;
         else if(count === 0) document.getElementById('countdown').innerText = "ГОУ!";
-        else { 
-            clearInterval(timer); document.getElementById('countdown').style.display = 'none'; gameActive = true; 
-            document.getElementById('controls-wrapper').style.display = 'flex';
-            hand = [];
-            for(let i=0; i<4; i++) { let c = getCard(); if(c) hand.push(c); }
-            renderHand(); 
-        }
+        else { clearInterval(timer); document.getElementById('countdown').style.display = 'none'; gameActive = true; document.getElementById('controls-wrapper').style.display = 'flex'; hand = []; for(let i=0; i<4; i++) { let c = getCard(); if(c) hand.push(c); } renderHand(); }
     }, 1000);
 }
 
@@ -155,9 +135,7 @@ function updateGame() {
     if(gameOverTriggered) return;
     elixir = Math.min(10, elixir + eRate); enemyElixir = Math.min(10, enemyElixir + eRate);
     document.getElementById('elixir-val').innerText = Math.floor(elixir);
-    document.querySelectorAll('.elixir-fill-inner').forEach((c, i) => {
-        c.style.width = (Math.max(0, Math.min(1, elixir - i)) * 100) + "%";
-    });
+    document.querySelectorAll('.elixir-fill-inner').forEach((c, i) => { c.style.width = (Math.max(0, Math.min(1, elixir - i)) * 100) + "%"; });
 
     if(enemyElixir >= 5 && Date.now() - lastEnemySpawn > 3500) {
         let keys = Object.keys(CLASS_STATS);
@@ -171,40 +149,68 @@ function updateGame() {
     [...units, ...towers].forEach(u => {
         if(u.speed === 0 && u.type !== 'Башня' && u.type !== 'ТУРЕЛЬ') return;
         let possibleTargets;
-        if(u.isHealer) possibleTargets = units.filter(e => e.side === u.side && e.curHp < e.hp);
-        else {
+        if(u.isHealer) {
+            possibleTargets = units.filter(e => e.side === u.side && e.curHp < e.hp);
+        } else if (u.isTank) {
+            // ЛОГИКА ТАНКА: Только башни, турели и стены
+            possibleTargets = [...towers.filter(t => t.side !== u.side), ...units.filter(e => e.side !== u.side && e.isBuilding), ...walls.filter(w => w.side !== u.side && w.hp > 0)];
+        } else {
             possibleTargets = [...units.filter(e => e.side !== u.side), ...towers.filter(t => t.side !== u.side)];
             if(!u.canAttackAir) possibleTargets = possibleTargets.filter(t => !t.isAir);
         }
-        let target = possibleTargets.sort((a,b) => Math.hypot((a.x || a.cx*cellW)-u.x, (a.y || a.cy*cellH)-u.y) - Math.hypot((b.x || b.cx*cellW)-u.x, (b.y || b.cy*cellH)-u.y))[0];
-        if(!target) return;
-        let tx = target.x !== undefined ? target.x : target.cx*cellW + cellW/2, ty = target.y !== undefined ? target.y : target.cy*cellH + cellH/2, d = Math.hypot(tx-u.x, ty-u.y);
+
+        let target = possibleTargets.sort((a,b) => {
+            let ax = a.x !== undefined ? a.x : a.cx*cellW + cellW/2;
+            let ay = a.y !== undefined ? a.y : a.cy*cellH + cellH/2;
+            let bx = b.x !== undefined ? b.x : b.cx*cellW + cellW/2;
+            let by = b.y !== undefined ? b.y : b.cy*cellH + cellH/2;
+            return Math.hypot(ax-u.x, ay-u.y) - Math.hypot(bx-u.x, by-u.y);
+        })[0];
+
+        if(!target) {
+            if(u.speed > 0) { // Если нет целей, танки и юниты идут к базе врага
+                let dir = u.side === 'player' ? -1 : 1;
+                u.y += u.speed * dir;
+            }
+            return;
+        }
+
+        let tx = target.x !== undefined ? target.x : target.cx*cellW + cellW/2;
+        let ty = target.y !== undefined ? target.y : target.cy*cellH + cellH/2;
+        let d = Math.hypot(tx-u.x, ty-u.y);
+
         if(u.type === 'ТУРЕЛЬ') u.angle = Math.atan2(ty - u.y, tx - u.x);
+
         if(d < (u.range || 50)) {
             let cooldown = u.atkSpeed || 1000;
             if(Date.now() - (u.lastAtk||0) > cooldown) {
                 let dmg = u.type === 'Башня' ? 20 : (u.damage || 10);
                 if(u.isHealer) target.curHp = Math.min(target.hp, target.curHp + 30);
-                else { if(target.maxHp !== undefined) target.hp -= dmg; else target.curHp -= dmg; }
+                else { 
+                    if(target.maxHp !== undefined) target.hp -= dmg; 
+                    else if(target.hp !== undefined && target.cx !== undefined) target.hp -= dmg; // Урон стене
+                    else target.curHp -= dmg; 
+                }
                 u.lastAtk = Date.now(); 
                 fx.push({x1:u.x, y1:u.y, x2:tx, y2:ty, t:6, c: u.isHealer ? '#0f0':'#ffeb3b', isHit: !u.isHealer});
             }
         } else if(u.speed > 0) {
             let angle = Math.atan2(ty-u.y, tx-u.x), vx = Math.cos(angle) * u.speed, vy = Math.sin(angle) * u.speed;
-            if(u.isAir) { u.x += vx; u.y += vy; } else {
+            if(u.isAir || u.isTank) { // Танк игнорирует коллизии с юнитами, но может встретить стену
+                let obs = checkCollision(u.x + vx * 20, u.y + vy * 20, u.size);
+                if(obs && obs.side !== u.side) {
+                     // Танк встает перед стеной и атакует её (логика атаки выше через target)
+                } else { u.x += vx; u.y += vy; }
+            } else {
                 let obstacle = checkCollision(u.x + vx * 25, u.y + vy * 25, u.size);
                 if(obstacle) {
-                    if(obstacle.side !== u.side && u.type === 'TANK') {
-                        if(Date.now() - (u.lastAtk||0) > 1000) { obstacle.hp -= u.damage; u.lastAtk = Date.now(); fx.push({x1:u.x, y1:u.y, x2:obstacle.cx*cellW+cellW/2, y2:obstacle.cy*cellH+cellH/2, t:5, c:'#ff0', isHit: true}); }
-                    } else {
-                        let foundPath = false;
-                        for(let deg = 35; deg <= 95; deg += 30) {
-                            let rad = deg * (Math.PI / 180), lX = Math.cos(angle - rad), lY = Math.sin(angle - rad), rX = Math.cos(angle + rad), rY = Math.sin(angle + rad);
-                            if(!checkCollision(u.x + lX * 30, u.y + lY * 30, u.size)) { u.x += lX * u.speed * 1.2; u.y += lY * u.speed * 1.2; foundPath = true; break; }
-                            else if(!checkCollision(u.x + rX * 30, u.y + rY * 30, u.size)) { u.x += rX * u.speed * 1.2; u.y += rY * u.speed * 1.2; foundPath = true; break; }
-                        }
-                        if(!foundPath) { u.x -= vx * 0.3; u.y -= vy * 0.3; }
+                    let foundPath = false;
+                    for(let deg = 35; deg <= 95; deg += 30) {
+                        let rad = deg * (Math.PI / 180), lX = Math.cos(angle - rad), lY = Math.sin(angle - rad), rX = Math.cos(angle + rad), rY = Math.sin(angle + rad);
+                        if(!checkCollision(u.x + lX * 30, u.y + lY * 30, u.size)) { u.x += lX * u.speed * 1.2; u.y += lY * u.speed * 1.2; foundPath = true; break; }
+                        else if(!checkCollision(u.x + rX * 30, u.y + rY * 30, u.size)) { u.x += rX * u.speed * 1.2; u.y += rY * u.speed * 1.2; foundPath = true; break; }
                     }
+                    if(!foundPath) { u.x -= vx * 0.3; u.y -= vy * 0.3; }
                 } else { u.x += vx; u.y += vy; }
             }
         }
