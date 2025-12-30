@@ -3,111 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Of IT - Составы</title>
+    <title>Составы</title>
     <style>
-        body { 
-            background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; 
-            display: flex; flex-direction: column; align-items: center; 
-            user-select: none; /* Запрещаем выделение текста, чтобы не мешало кликам */
-            -webkit-user-select: none;
-        }
-        .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; width: 95%; max-width: 600px; padding: 10px; }
+        body { background: #050505; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
+        /* Сетка для 8 слотов */
+        .active-deck-grid { 
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; 
+            width: 95%; max-width: 500px; background: #111; padding: 15px; 
+            border-bottom: 2px solid #333; margin-top: 10px;
+        }
+        .slot { 
+            aspect-ratio: 2/3; border: 2px dashed #444; border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center; font-size: 10px; color: #555;
+            transition: 0.2s;
+        }
+        .slot.filled { border: 2px solid #00fbff; background: #002b2e; color: white; border-style: solid; }
+
+        /* Коллекция */
+        .collection-grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
+            gap: 10px; width: 95%; max-width: 600px; padding: 20px;
+        }
         .card { 
-            background: #1a1a1a; border: 2px solid #333; border-radius: 12px; 
-            padding: 10px; text-align: center; position: relative; 
-            cursor: pointer; transition: 0.2s;
-            touch-action: manipulation; /* Оптимизация для мобилок */
+            background: #1a1a1a; border: 2px solid #333; border-radius: 8px; 
+            padding: 8px; text-align: center; cursor: grab; position: relative;
+            touch-action: none; /* Важно для перетаскивания пальцем */
+            z-index: 10;
         }
-        /* Эффект нажатия для мобилок */
-        .card:active { transform: scale(0.95); background: #222; }
+        .card.dragging { opacity: 0.5; cursor: grabbing; z-index: 1000; }
+        .card.in-deck { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
         
-        .card.active { border-color: #00fbff; box-shadow: 0 0 15px rgba(0,251,255,0.4); background: #002b2e; }
-        .card b { display: block; font-size: 14px; margin-top: 5px; pointer-events: none; }
-        .card span { font-size: 10px; color: #aaa; text-transform: uppercase; pointer-events: none; }
-        .rat { position: absolute; top: 5px; left: 5px; font-weight: bold; color: gold; font-size: 14px; pointer-events: none; }
-        
-        .deck-info { background: #111; width: 100%; padding: 15px; text-align: center; border-bottom: 2px solid #222; position: sticky; top: 0; z-index: 100; }
-        .btn-back { background: #444; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        .rat { position: absolute; top: 2px; left: 4px; font-weight: bold; color: gold; font-size: 12px; }
+        .btn-back { margin-top: 15px; padding: 10px 20px; background: #333; color: white; border: none; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div class="deck-info">
-    <div style="display:flex; justify-content: space-between; align-items: center; max-width: 600px; margin: 0 auto; width: 100%;">
-        <button class="btn-back" onclick="window.location.href='index.html'">МЕНЮ</button>
-        <div style="font-size: 14px;">В СОСТАВЕ: <b id="deck-count" style="color:#00fbff; font-size: 18px;">0</b> / 8</div>
-    </div>
-</div>
+    <button class="btn-back" onclick="window.location.href='index.html'">В МЕНЮ</button>
 
-<h3 style="margin: 20px 0 10px 0; color: #aaa; text-transform: uppercase; font-size: 14px;">Твоя коллекция</h3>
-<div id="collection-grid" class="grid"></div>
+    <div class="active-deck-grid" id="deck-slots"></div>
 
-<script>
-    let collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
-    let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
+    <h4 style="margin: 15px 0 0 0; color: #666; text-transform: uppercase; font-size: 12px;">Твоя коллекция (тяни карту в слот)</h4>
+    <div class="collection-grid" id="collection-grid"></div>
 
-    function render() {
-        const grid = document.getElementById('collection-grid');
-        grid.innerHTML = "";
-        
-        if (collection.length === 0) {
-            grid.innerHTML = "<p style='grid-column: 1/-1; color: #555;'>У тебя пока нет карт. Зайди в магазин!</p>";
-            return;
-        }
+    <script>
+        let collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
+        let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
 
-        collection.forEach(card => {
-            const isActive = activeDeck.some(c => c.id === card.id);
-            const cardEl = document.createElement('div');
-            cardEl.className = `card ${isActive ? 'active' : ''}`;
-            
-            // Цвета редкости
-            if(card.rarity === 'редкий') cardEl.style.borderColor = '#2196F3';
-            if(card.rarity === 'легендарный') cardEl.style.borderColor = 'gold';
-
-            cardEl.innerHTML = `
-                <div class="rat">${card.rating}</div>
-                <div style="font-size:32px; margin-bottom: 5px;">👤</div>
-                <b>${card.name}</b>
-                <span>${card.class}</span>
-            `;
-            
-            // Используем touchend для мгновенного срабатывания на телефонах
-            cardEl.addEventListener('touchend', (e) => {
-                e.preventDefault(); // Останавливаем зум/выделение
-                toggleCard(card);
-            });
-
-            // Оставляем onclick для ПК
-            cardEl.addEventListener('click', (e) => {
-                // Если это не тач-событие, сработает клик
-                if (e.pointerType !== 'touch') toggleCard(card);
-            });
-
-            grid.appendChild(cardEl);
-        });
-        
-        document.getElementById('deck-count').innerText = activeDeck.length;
-    }
-
-    function toggleCard(card) {
-        const index = activeDeck.findIndex(c => c.id === card.id);
-        if (index > -1) {
-            activeDeck.splice(index, 1);
-        } else {
-            if (activeDeck.length >= 8) {
-                // Виброотклик, если телефон поддерживает
-                if (navigator.vibrate) navigator.vibrate(100);
-                return;
+        function render() {
+            // Рендер 8 слотов
+            const slotsContainer = document.getElementById('deck-slots');
+            slotsContainer.innerHTML = "";
+            for (let i = 0; i < 8; i++) {
+                const card = activeDeck[i];
+                const slot = document.createElement('div');
+                slot.className = `slot ${card ? 'filled' : ''}`;
+                slot.dataset.index = i;
+                
+                if (card) {
+                    slot.innerHTML = `<div style="text-align:center"><b>${card.rating}</b><br>${card.name}</div>`;
+                    slot.onclick = () => removeCard(i);
+                } else {
+                    slot.innerText = "ПУСТО";
+                }
+                slotsContainer.appendChild(slot);
             }
-            activeDeck.push(card);
-        }
-        localStorage.setItem('active_deck', JSON.stringify(activeDeck));
-        render();
-    }
 
-    render();
-</script>
+            // Рендер коллекции
+            const grid = document.getElementById('collection-grid');
+            grid.innerHTML = "";
+            collection.forEach(card => {
+                const isInDeck = activeDeck.some(c => c.id === card.id);
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${isInDeck ? 'in-deck' : ''}`;
+                cardEl.innerHTML = `<div class="rat">${card.rating}</div><div style="font-size:24px;">👤</div><div>${card.name}</div>`;
+                
+                if(!isInDeck) {
+                    addDragListeners(cardEl, card);
+                }
+                grid.appendChild(cardEl);
+            });
+        }
+
+        function addDragListeners(el, cardData) {
+            let startX, startY, initialX, initialY;
+
+            el.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const rect = el.getBoundingClientRect();
+                startX = touch.clientX;
+                startY = touch.clientY;
+                initialX = rect.left;
+                initialY = rect.top;
+                
+                el.classList.add('dragging');
+                el.style.position = 'fixed';
+                el.style.width = rect.width + 'px';
+                moveAt(touch.clientX, touch.clientY);
+            });
+
+            el.addEventListener('touchmove', (e) => {
+                moveAt(e.touches[0].clientX, e.touches[0].clientY);
+            });
+
+            el.addEventListener('touchend', (e) => {
+                el.classList.remove('dragging');
+                el.style.position = 'static';
+                el.style.width = 'auto';
+
+                const touch = e.changedTouches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                const slot = target ? target.closest('.slot') : null;
+
+                if (slot && activeDeck.length < 8) {
+                    activeDeck.push(cardData);
+                    localStorage.setItem('active_deck', JSON.stringify(activeDeck));
+                }
+                render();
+            });
+
+            function moveAt(x, y) {
+                el.style.left = x - (el.offsetWidth / 2) + 'px';
+                el.style.top = y - (el.offsetHeight / 2) + 'px';
+            }
+        }
+
+        function removeCard(index) {
+            activeDeck.splice(index, 1);
+            localStorage.setItem('active_deck', JSON.stringify(activeDeck));
+            render();
+        }
+
+        render();
+    </script>
 </body>
 </html>
