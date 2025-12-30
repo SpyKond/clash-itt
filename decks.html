@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Составы - Управление армией</title>
+    <style>
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .deck-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background: #111; padding: 20px; border-radius: 15px; border: 2px solid #333; margin-bottom: 30px; width: 100%; max-width: 500px; }
+        .card-slot { width: 100px; height: 140px; background: #000; border: 2px dashed #444; border-radius: 12px; position: relative; display: flex; align-items: center; justify-content: center; }
+        
+        .card-item { 
+            width: 100px; height: 140px; background: #1a1a1a; border-radius: 10px; border: 2px solid #fff; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: grab; position: relative; transition: 0.2s; user-select: none;
+        }
+        .card-item:hover { transform: scale(1.05); }
+        .card-item .rat { position: absolute; top: 5px; left: 8px; font-weight: bold; font-size: 16px; }
+        .card-item .name { font-size: 11px; font-weight: bold; margin-top: 10px; text-align: center; }
+        .card-item .cls { font-size: 9px; color: #888; text-transform: uppercase; }
+
+        #reserve-list { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; width: 100%; max-width: 800px; padding-bottom: 50px; }
+
+        .rarity-мифический { border-color: #f44336 !important; box-shadow: 0 0 15px #f44336; }
+        .rarity-эпический { border-color: #e040fb !important; box-shadow: 0 0 15px #e040fb; }
+        .rarity-редкий { border-color: #2196F3 !important; box-shadow: 0 0 15px #2196F3; }
+        .rarity-обычный { border-color: #ffffff !important; }
+        
+        .header { width: 100%; max-width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button onclick="location.href='index.html'" style="background:#f44336; color:white; border:none; padding:10px 25px; border-radius:10px; cursor:pointer; font-weight:bold;">НАЗАД В МЕНЮ</button>
+        <h1 style="color:#00fbff; margin:0;">СОСТАВЫ</h1>
+    </div>
+
+    <h3 style="color:#ffeb3b;">ОСНОВНАЯ КОЛОДА (8 КАРТ)</h3>
+    <div class="deck-grid" id="main-deck"></div>
+
+    <h3 style="color:#00fbff;">РЕЗЕРВ (ТВОИ КАРТЫ)</h3>
+    <div id="reserve-list"></div>
+
+<script>
+    let collection = [];
+    let activeDeck = [];
+
+    function loadData() {
+        collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
+        activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
+        // Синхронизируем: если в активной колоде есть карты, которых нет в коллекции (старые баги), чистим их
+        activeDeck = activeDeck.filter(ad => collection.some(c => c.id === ad.id));
+        render();
+    }
+
+    function render() {
+        const deckEl = document.getElementById('main-deck');
+        deckEl.innerHTML = '';
+        
+        for(let i=0; i<8; i++) {
+            let slot = document.createElement('div');
+            slot.className = 'card-slot';
+            slot.ondragover = e => e.preventDefault();
+            slot.ondrop = e => handleDrop(e, i);
+            
+            if(activeDeck[i]) {
+                slot.appendChild(createCardUI(activeDeck[i], i, true));
+            }
+            deckEl.appendChild(slot);
+        }
+
+        const reserveEl = document.getElementById('reserve-list');
+        reserveEl.innerHTML = '';
+        collection.forEach((card) => {
+            // В резерве показываем только те карты, которые НЕ стоят в основе
+            if(!activeDeck.some(c => c.id === card.id)) {
+                reserveEl.appendChild(createCardUI(card, null, false));
+            }
+        });
+    }
+
+    function createCardUI(card, index, isInDeck) {
+        const div = document.createElement('div');
+        div.className = `card-item rarity-${card.rarity}`;
+        div.draggable = true;
+        div.innerHTML = `<div class="rat" style="color:${getRareColor(card.rarity)}">${card.rating}</div>
+                         <div class="name">${card.name}</div>
+                         <div class="cls">${card.class}</div>`;
+        
+        div.ondragstart = (e) => {
+            e.dataTransfer.setData('cardId', card.id);
+        };
+        return div;
+    }
+
+    function handleDrop(e, slotIndex) {
+        e.preventDefault();
+        const cardId = parseFloat(e.dataTransfer.getData('cardId'));
+        const draggedCard = collection.find(c => c.id === cardId);
+
+        if(draggedCard) {
+            // Если эта карта уже была в другом слоте основы — убираем её оттуда (чтобы не было дублей в бою)
+            const existingIndex = activeDeck.findIndex(c => c && c.id === cardId);
+            if(existingIndex !== -1) activeDeck[existingIndex] = null;
+
+            // Ставим карту в новый слот
+            activeDeck[slotIndex] = draggedCard;
+            
+            localStorage.setItem('active_deck', JSON.stringify(activeDeck.filter(c => c !== null)));
+            render();
+        }
+    }
+
+    function getRareColor(r) {
+        if(r === 'мифический') return '#f44336';
+        if(r === 'эпический') return '#e040fb';
+        if(r === 'редкий') return '#2196F3';
+        return '#fff';
+    }
+
+    loadData();
+</script>
+</body>
+</html>

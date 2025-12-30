@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clash Of IT - Магазин</title>
+    <style>
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
+        .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
+        #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; transition: 0.5s; }
+        
+        .pack-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; perspective: 1000px; }
+        .pack-card { width: 140px; height: 210px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+        .pack-card.flipped { transform: rotateY(180deg); }
+        .pack-front, .pack-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
+        .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 12px; padding: 10px; box-sizing: border-box; text-align: center; }
+        
+        #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.9); flex-direction: column; }
+        .flip-container { width: 240px; height: 340px; perspective: 1000px; }
+        .flipper { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .pack-opening, .card-result { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .card-result { transform: rotateY(180deg); background: #222; }
+
+        .shaking { animation: shake 0.1s infinite; }
+        @keyframes shake { 0%{transform:translate(2px,1px)} 50%{transform:translate(-2px,-1px)} 100%{transform:translate(0)} }
+        
+        @keyframes flash-pulse { 0% { background-color: rgba(0,0,0,0.9); } 30% { background-color: var(--p-col); } 100% { background-color: rgba(0,0,0,0.95); } }
+        .do-flash { animation: flash-pulse 0.8s ease-out forwards; }
+        .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; cursor: pointer; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="main-content">
+    <div class="header">
+        <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">НАЗАД</button>
+        <div style="color:gold; font-size: 24px; font-weight: bold;">💰 <span id="coins-val">500</span></div>
+    </div>
+    <h1 style="text-align:center;">МАГАЗИН</h1>
+    <div id="starter-section" style="width: 100%; display: flex; justify-content: center; margin-bottom: 20px;"></div>
+    
+    <div class="pack-container">
+        <div class="pack-card" oncontextmenu="this.classList.toggle('flipped'); return false;" onclick="buyPack('common', 150)" style="border: 2px solid #8b4513; border-radius: 15px;">
+            <div class="pack-front"><span>📦</span><b>ОБЫЧНЫЙ</b><p>150 C</p></div>
+            <div class="pack-back"><b>ШАНСЫ:</b><br>Обычный: 90%<br>Редкий: 10%</div>
+        </div>
+        <div class="pack-card" oncontextmenu="this.classList.toggle('flipped'); return false;" onclick="buyPack('epic', 300)" style="border: 2px solid #e040fb; border-radius: 15px;">
+            <div class="pack-front"><span>💎</span><b>ЭПИЧЕСКИЙ</b><p>300 C</p></div>
+            <div class="pack-back"><b>ШАНСЫ:</b><br>Редкий: 80%<br>Эпик: 20%</div>
+        </div>
+        <div class="pack-card" oncontextmenu="this.classList.toggle('flipped'); return false;" onclick="buyPack('legend', 500)" style="border: 2px solid gold; border-radius: 15px;">
+            <div class="pack-front"><span>👑</span><b>ЛЕГЕНДА</b><p>500 C</p></div>
+            <div class="pack-back"><b>ШАНСЫ:</b><br>Эпик: 70%<br>Легенда: 30%</div>
+        </div>
+    </div>
+</div>
+
+<div id="opening-overlay">
+    <div class="flip-container" onclick="handlePackClick()">
+        <div id="flipper" class="flipper">
+            <div id="pack-visual" class="pack-opening">
+                <h2 id="pack-label" style="text-align:center;">НАЖМИ НА ПАК</h2>
+                <div id="pack-icon" style="font-size: 80px;">📦</div>
+            </div>
+            <div id="card-result" class="card-result">
+                <div id="c-rat" style="position:absolute; top:20px; left:20px; font-size:32px; font-weight:bold; color:gold;"></div>
+                <h2 id="c-name" style="margin-bottom:5px;">ИМЯ</h2>
+                <p id="c-class" style="color:#00fbff; font-weight:bold; margin:0;"></p>
+                <p id="c-rarity" style="margin-top:15px; font-size:14px; text-transform:uppercase; color:#aaa;"></p>
+            </div>
+        </div>
+    </div>
+    <button id="claim-btn" class="btn-claim" onclick="window.location.reload()">ЗАБРАТЬ КАРТУ</button>
+</div>
+
+<script>
+    // 1. Константы имен
+    const MY_CHARS = [
+        {n:"Мансур", c:"армия", r:"обычный"}, {n:"Акылжан", c:"медик", r:"обычный"},
+        {n:"Нурасыл", c:"турель", r:"обычный"}, {n:"Ерасыл", c:"летун", r:"обычный"},
+        {n:"Максат", c:"лучник", r:"обычный"}, {n:"Димаш", c:"ближник", r:"редкий"},
+        {n:"Темирлан", c:"танк", r:"обычный"}, {n:"Санжар", c:"рой", r:"обычный"}
+    ];
+
+    // 2. Загрузка данных
+    let coins = parseInt(localStorage.getItem('it_coins') || 500);
+    document.getElementById('coins-val').innerText = coins;
+
+    let currentCard = null;
+    let isOpening = false;
+
+    // 3. Покупка пака
+    function buyPack(type, price) {
+        if(coins < price) { alert("Мало монет!"); return; }
+        
+        // Генерируем карту ПЕРЕД открытием
+        let randChar = MY_CHARS[Math.floor(Math.random() * MY_CHARS.length)];
+        let rarity = (type === 'legend') ? 'легендарный' : (type === 'epic' ? 'редкий' : randChar.r);
+        let rating = (rarity === 'легендарный') ? 92 : (rarity === 'редкий' ? 82 : 70);
+        
+        currentCard = {
+            name: randChar.n,
+            class: randChar.c,
+            rarity: rarity,
+            rating: rating,
+            id: Date.now() + Math.random()
+        };
+
+        coins -= price;
+        localStorage.setItem('it_coins', coins);
+        document.getElementById('coins-val').innerText = coins;
+        
+        setupOverlay(type);
+    }
+
+    // 4. Подготовка экрана открытия
+    function setupOverlay(type) {
+        isOpening = false;
+        const overlay = document.getElementById('opening-overlay');
+        const packVisual = document.getElementById('pack-visual');
+        const flipper = document.getElementById('flipper');
+        
+        flipper.style.transform = "rotateY(0deg)";
+        packVisual.classList.remove('shaking');
+        overlay.classList.remove('do-flash');
+        
+        document.getElementById('pack-icon').innerText = (type==='common')?"📦":(type==='epic')?"💎":"👑";
+        packVisual.style.borderColor = (type==='common')?"#8b4513":(type==='epic')?"#e040fb":"gold";
+
+        document.getElementById('main-content').style.filter = 'blur(10px)';
+        overlay.style.display = 'flex';
+        document.getElementById('claim-btn').style.display = 'none';
+        document.getElementById('pack-label').innerText = "НАЖМИ НА ПАК";
+    }
+
+    // 5. Клик по паку (Анимация)
+    function handlePackClick() {
+        if(isOpening || !currentCard) return;
+        isOpening = true;
+
+        const visual = document.getElementById('pack-visual');
+        const overlay = document.getElementById('opening-overlay');
+        const flipper = document.getElementById('flipper');
+        
+        // Пульс цвета
+        let pColor = currentCard.rarity === 'редкий' ? 'rgba(33,150,243,0.7)' : (currentCard.rarity === 'легендарный' ? 'rgba(255,215,0,0.7)' : 'rgba(139,69,19,0.7)');
+        overlay.style.setProperty('--p-col', pColor);
+        overlay.classList.add('do-flash');
+        visual.classList.add('shaking');
+
+        // Ждем 2 секунды и поворачиваем
+        setTimeout(() => {
+            visual.classList.remove('shaking');
+            
+            // Вставляем данные в карту ГАРАНТИРОВАННО
+            document.getElementById('c-name').innerText = currentCard.name || "Герой";
+            document.getElementById('c-class').innerText = (currentCard.class || "ближник").toUpperCase();
+            document.getElementById('c-rat').innerText = currentCard.rating || 70;
+            document.getElementById('c-rarity').innerText = currentCard.rarity || "обычный";
+            
+            // Цвет рамки карты
+            let borderColor = "#8b4513";
+            if(currentCard.rarity === 'редкий') borderColor = "#2196F3";
+            if(currentCard.rarity === 'легендарный') borderColor = "gold";
+            document.getElementById('card-result').style.borderColor = borderColor;
+
+            // Поворот
+            flipper.style.transform = "rotateY(180deg)";
+            
+            // Сохранение в коллекцию
+            let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
+            col.push(currentCard);
+            localStorage.setItem('my_collection', JSON.stringify(col));
+
+            setTimeout(() => { document.getElementById('claim-btn').style.display = 'block'; }, 600);
+        }, 2000);
+    }
+
+    // 6. Начальный пак
+    function renderStarter() {
+        const sec = document.getElementById('starter-section');
+        let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
+        if(col.length === 0) {
+            sec.innerHTML = `<div onclick="startFreePack()" style="width:90%; height:60px; background:#1a1a1a; border:2px dashed #00fbff; border-radius:15px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#00fbff; font-weight:bold;">🎁 ЗАБРАТЬ НАЧАЛЬНЫЙ НАБОР (8 КАРТ)</div>`;
+        }
+    }
+
+    function startFreePack() {
+        // Создаем карту для показа (Димаш)
+        currentCard = { name: "Димаш", class: "ближник", rarity: "редкий", rating: 82, id: Date.now() };
+        
+        // Создаем и сохраняем весь набор из 8 человек сразу
+        let fullSet = MY_CHARS.map(c => ({
+            name: c.n,
+            class: c.c,
+            rarity: c.r,
+            rating: (c.r === 'редкий' ? 82 : 70),
+            id: Math.random() + Date.now()
+        }));
+        
+        localStorage.setItem('my_collection', JSON.stringify(fullSet));
+        setupOverlay('common');
+    }
+
+    renderStarter();
+</script>
+</body>
+</html>
