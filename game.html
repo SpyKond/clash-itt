@@ -53,6 +53,8 @@
     <button class="btn" style="background:#2196F3; padding:15px 40px; font-size:20px; border-radius:10px;" onclick="location.href='index.html'">В МЕНЮ</button>
 </div>
 
+<script src="assets.js"></script>
+
 <script>
 const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
 const BW = 500, BH = 900, ROWS = 16, COLS = 8, cellW = BW / COLS, cellH = BH / ROWS;
@@ -152,7 +154,6 @@ function updateGame() {
         if(u.isHealer) {
             possibleTargets = units.filter(e => e.side === u.side && e.curHp < e.hp);
         } else if (u.isTank) {
-            // ЛОГИКА ТАНКА: Только башни, турели и стены
             possibleTargets = [...towers.filter(t => t.side !== u.side), ...units.filter(e => e.side !== u.side && e.isBuilding), ...walls.filter(w => w.side !== u.side && w.hp > 0)];
         } else {
             possibleTargets = [...units.filter(e => e.side !== u.side), ...towers.filter(t => t.side !== u.side)];
@@ -168,7 +169,7 @@ function updateGame() {
         })[0];
 
         if(!target) {
-            if(u.speed > 0) { // Если нет целей, танки и юниты идут к базе врага
+            if(u.speed > 0) {
                 let dir = u.side === 'player' ? -1 : 1;
                 u.y += u.speed * dir;
             }
@@ -188,7 +189,7 @@ function updateGame() {
                 if(u.isHealer) target.curHp = Math.min(target.hp, target.curHp + 30);
                 else { 
                     if(target.maxHp !== undefined) target.hp -= dmg; 
-                    else if(target.hp !== undefined && target.cx !== undefined) target.hp -= dmg; // Урон стене
+                    else if(target.hp !== undefined && target.cx !== undefined) target.hp -= dmg; 
                     else target.curHp -= dmg; 
                 }
                 u.lastAtk = Date.now(); 
@@ -196,11 +197,9 @@ function updateGame() {
             }
         } else if(u.speed > 0) {
             let angle = Math.atan2(ty-u.y, tx-u.x), vx = Math.cos(angle) * u.speed, vy = Math.sin(angle) * u.speed;
-            if(u.isAir || u.isTank) { // Танк игнорирует коллизии с юнитами, но может встретить стену
+            if(u.isAir || u.isTank) {
                 let obs = checkCollision(u.x + vx * 20, u.y + vy * 20, u.size);
-                if(obs && obs.side !== u.side) {
-                     // Танк встает перед стеной и атакует её (логика атаки выше через target)
-                } else { u.x += vx; u.y += vy; }
+                if(obs && obs.side !== u.side) { } else { u.x += vx; u.y += vy; }
             } else {
                 let obstacle = checkCollision(u.x + vx * 25, u.y + vy * 25, u.size);
                 if(obstacle) {
@@ -232,38 +231,33 @@ function renderLoop() {
     ctx.strokeStyle = "rgba(0, 251, 255, 0.3)"; ctx.lineWidth = 2*dpr;
     ctx.beginPath(); ctx.moveTo(0, (BH/2)*s); ctx.lineTo(BW*s, (BH/2)*s); ctx.stroke();
     walls.forEach(w => { if(w.hp > 0) { ctx.fillStyle = w.side==='player'?"#2196F3":"#F44336"; ctx.fillRect(w.cx*cellW*s, w.cy*cellH*s, (w.vertical?12:cellW)*s, (w.vertical?cellH:12)*s); } });
+    
     [...towers, ...units].forEach(obj => {
         let hp = obj.maxHp !== undefined ? obj.hp : obj.curHp, mHp = obj.maxHp !== undefined ? obj.maxHp : obj.hp;
         if(hp <= 0) return;
         let vX = obj.x * s, vY = obj.y * s, floatY = obj.isAir ? Math.sin(Date.now()/200)*5 : 0;
-        if(obj.isAir) { ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.beginPath(); ctx.ellipse(vX, vY + 20*s, obj.size*s, obj.size*0.4*s, 0, 0, 7); ctx.fill(); }
-        if (obj.type === 'ТУРЕЛЬ') {
+        
+        // РИСУЕМ БАШНЮ ИЗ ASSETS.JS
+        if (obj.type === 'Башня') {
+            drawTowerAsset(ctx, obj, vX, vY, s);
+            drawBar(vX, vY - 80*s, hp, mHp, s, obj.type);
+        } else if (obj.type === 'ТУРЕЛЬ') {
             ctx.fillStyle = "#333"; ctx.beginPath(); ctx.arc(vX, vY, obj.size * s, 0, 7); ctx.fill();
             ctx.strokeStyle = obj.side === 'player' ? "#00fbff" : "#F44336"; ctx.lineWidth = 2 * dpr; ctx.stroke();
             ctx.save(); ctx.translate(vX, vY); ctx.rotate(obj.angle || 0); ctx.fillStyle = "#888"; ctx.fillRect(0, -5 * s, 30 * s, 10 * s); ctx.fillStyle = "#555"; ctx.beginPath(); ctx.arc(0, 0, (obj.size * 0.6) * s, 0, 7); ctx.fill(); ctx.restore();
             drawBar(vX, vY - (obj.size + 15) * s, hp, mHp, s, "ТУРЕЛЬ");
-        } else if(obj.maxHp !== undefined) { 
-            ctx.fillStyle = obj.side==='player'?'#00fbff':'#F44336'; ctx.fillRect(vX - 25*s, vY - 25*s, 50*s, 50*s); 
-            drawBar(vX, vY - 35*s, hp, mHp, s, obj.type);
         } else {
             ctx.fillStyle = obj.side === 'enemy' ? '#F44336' : (obj.color || '#00fbff'); ctx.beginPath(); ctx.arc(vX, vY + floatY*s, obj.size*s, 0, 7); ctx.fill();
-            if(obj.isAir) { ctx.strokeStyle = "white"; ctx.lineWidth = 1*dpr; ctx.stroke(); }
             drawBar(vX, vY - obj.size*s - 15*s, hp, mHp, s, obj.name);
         }
     });
-    if(lastTouchPos.active && draggingCardIdx !== null) {
-        let canPlace = (lastTouchPos.y > BH/2);
-        ctx.beginPath(); ctx.arc(lastTouchPos.x * s, lastTouchPos.y * s, 30 * s, 0, 7);
-        ctx.fillStyle = canPlace ? "rgba(0, 251, 255, 0.2)" : "rgba(255, 0, 0, 0.3)"; ctx.fill();
-        ctx.strokeStyle = canPlace ? "#00fbff" : "#ff0000"; ctx.lineWidth = 2 * dpr; ctx.stroke();
-    }
+    
     fx = fx.filter(f => f.t > 0);
     fx.forEach(f => {
         if(f.isHit) { ctx.beginPath(); ctx.arc(f.x2 * s, f.y2 * s, (15 - f.t) * 1.5 * s, 0, 7); ctx.fillStyle = `rgba(255, 150, 0, ${f.t / 6})`; ctx.fill(); }
         ctx.strokeStyle = f.c; ctx.lineWidth = 2*dpr; ctx.beginPath(); ctx.moveTo(f.x1*s, f.y1*s); ctx.lineTo(f.x2*s, f.y2*s); ctx.stroke(); f.t--;
     });
     if(gameActive) updateGame();
-    hand.forEach((c, i) => { const ov = document.getElementById(`overlay-${i}`); if(ov) ov.style.height = Math.max(0, 100 - (elixir/c.cost)*100) + "%"; });
     requestAnimationFrame(renderLoop);
 }
 
@@ -318,13 +312,7 @@ function renderHand() {
         let d = document.createElement('div'); d.className = 'card'; 
         d.style.borderColor = rColor;
         d.style.boxShadow = `0 0 10px ${rColor}44`;
-        d.innerHTML = `
-            <div id="overlay-${i}" class="card-overlay"></div>
-            <div class="cost">${c.cost}</div>
-            <div class="rating-tag" style="color:${rColor}">${c.rating}</div>
-            <b style="color:${c.color}">${c.name}</b>
-            <small style="font-size:7px; opacity:0.7">${c.type}</small>
-        `;
+        d.innerHTML = `<div id="overlay-${i}" class="card-overlay"></div><div class="cost">${c.cost}</div><div class="rating-tag" style="color:${rColor}">${c.rating}</div><b style="color:${c.color}">${c.name}</b><small style="font-size:7px; opacity:0.7">${c.type}</small>`;
         d.onpointerdown = (e) => { e.stopPropagation(); if(elixir >= c.cost) draggingCardIdx = i; lastTouchPos.active = true; }; h.appendChild(d);
     });
 }
