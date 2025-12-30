@@ -2,124 +2,112 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Составы - Управление армией</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clash Of IT - Составы</title>
     <style>
-        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .deck-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background: #111; padding: 20px; border-radius: 15px; border: 2px solid #333; margin-bottom: 30px; width: 100%; max-width: 500px; }
-        .card-slot { width: 100px; height: 140px; background: #000; border: 2px dashed #444; border-radius: 12px; position: relative; display: flex; align-items: center; justify-content: center; }
-        
-        .card-item { 
-            width: 100px; height: 140px; background: #1a1a1a; border-radius: 10px; border: 2px solid #fff; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: grab; position: relative; transition: 0.2s; user-select: none;
+        body { 
+            background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; 
+            display: flex; flex-direction: column; align-items: center; 
+            user-select: none; /* Запрещаем выделение текста, чтобы не мешало кликам */
+            -webkit-user-select: none;
         }
-        .card-item:hover { transform: scale(1.05); }
-        .card-item .rat { position: absolute; top: 5px; left: 8px; font-weight: bold; font-size: 16px; }
-        .card-item .name { font-size: 11px; font-weight: bold; margin-top: 10px; text-align: center; }
-        .card-item .cls { font-size: 9px; color: #888; text-transform: uppercase; }
-
-        #reserve-list { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; width: 100%; max-width: 800px; padding-bottom: 50px; }
-
-        .rarity-мифический { border-color: #f44336 !important; box-shadow: 0 0 15px #f44336; }
-        .rarity-эпический { border-color: #e040fb !important; box-shadow: 0 0 15px #e040fb; }
-        .rarity-редкий { border-color: #2196F3 !important; box-shadow: 0 0 15px #2196F3; }
-        .rarity-обычный { border-color: #ffffff !important; }
+        .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; width: 95%; max-width: 600px; padding: 10px; }
         
-        .header { width: 100%; max-width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { 
+            background: #1a1a1a; border: 2px solid #333; border-radius: 12px; 
+            padding: 10px; text-align: center; position: relative; 
+            cursor: pointer; transition: 0.2s;
+            touch-action: manipulation; /* Оптимизация для мобилок */
+        }
+        /* Эффект нажатия для мобилок */
+        .card:active { transform: scale(0.95); background: #222; }
+        
+        .card.active { border-color: #00fbff; box-shadow: 0 0 15px rgba(0,251,255,0.4); background: #002b2e; }
+        .card b { display: block; font-size: 14px; margin-top: 5px; pointer-events: none; }
+        .card span { font-size: 10px; color: #aaa; text-transform: uppercase; pointer-events: none; }
+        .rat { position: absolute; top: 5px; left: 5px; font-weight: bold; color: gold; font-size: 14px; pointer-events: none; }
+        
+        .deck-info { background: #111; width: 100%; padding: 15px; text-align: center; border-bottom: 2px solid #222; position: sticky; top: 0; z-index: 100; }
+        .btn-back { background: #444; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <button onclick="location.href='index.html'" style="background:#f44336; color:white; border:none; padding:10px 25px; border-radius:10px; cursor:pointer; font-weight:bold;">НАЗАД В МЕНЮ</button>
-        <h1 style="color:#00fbff; margin:0;">СОСТАВЫ</h1>
+<div class="deck-info">
+    <div style="display:flex; justify-content: space-between; align-items: center; max-width: 600px; margin: 0 auto; width: 100%;">
+        <button class="btn-back" onclick="window.location.href='index.html'">МЕНЮ</button>
+        <div style="font-size: 14px;">В СОСТАВЕ: <b id="deck-count" style="color:#00fbff; font-size: 18px;">0</b> / 8</div>
     </div>
+</div>
 
-    <h3 style="color:#ffeb3b;">ОСНОВНАЯ КОЛОДА (8 КАРТ)</h3>
-    <div class="deck-grid" id="main-deck"></div>
-
-    <h3 style="color:#00fbff;">РЕЗЕРВ (ТВОИ КАРТЫ)</h3>
-    <div id="reserve-list"></div>
+<h3 style="margin: 20px 0 10px 0; color: #aaa; text-transform: uppercase; font-size: 14px;">Твоя коллекция</h3>
+<div id="collection-grid" class="grid"></div>
 
 <script>
-    let collection = [];
-    let activeDeck = [];
+    let collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
+    let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
 
-    function loadData() {
-        collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
-        activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
-        // Синхронизируем: если в активной колоде есть карты, которых нет в коллекции (старые баги), чистим их
-        activeDeck = activeDeck.filter(ad => collection.some(c => c.id === ad.id));
+    function render() {
+        const grid = document.getElementById('collection-grid');
+        grid.innerHTML = "";
+        
+        if (collection.length === 0) {
+            grid.innerHTML = "<p style='grid-column: 1/-1; color: #555;'>У тебя пока нет карт. Зайди в магазин!</p>";
+            return;
+        }
+
+        collection.forEach(card => {
+            const isActive = activeDeck.some(c => c.id === card.id);
+            const cardEl = document.createElement('div');
+            cardEl.className = `card ${isActive ? 'active' : ''}`;
+            
+            // Цвета редкости
+            if(card.rarity === 'редкий') cardEl.style.borderColor = '#2196F3';
+            if(card.rarity === 'легендарный') cardEl.style.borderColor = 'gold';
+
+            cardEl.innerHTML = `
+                <div class="rat">${card.rating}</div>
+                <div style="font-size:32px; margin-bottom: 5px;">👤</div>
+                <b>${card.name}</b>
+                <span>${card.class}</span>
+            `;
+            
+            // Используем touchend для мгновенного срабатывания на телефонах
+            cardEl.addEventListener('touchend', (e) => {
+                e.preventDefault(); // Останавливаем зум/выделение
+                toggleCard(card);
+            });
+
+            // Оставляем onclick для ПК
+            cardEl.addEventListener('click', (e) => {
+                // Если это не тач-событие, сработает клик
+                if (e.pointerType !== 'touch') toggleCard(card);
+            });
+
+            grid.appendChild(cardEl);
+        });
+        
+        document.getElementById('deck-count').innerText = activeDeck.length;
+    }
+
+    function toggleCard(card) {
+        const index = activeDeck.findIndex(c => c.id === card.id);
+        if (index > -1) {
+            activeDeck.splice(index, 1);
+        } else {
+            if (activeDeck.length >= 8) {
+                // Виброотклик, если телефон поддерживает
+                if (navigator.vibrate) navigator.vibrate(100);
+                return;
+            }
+            activeDeck.push(card);
+        }
+        localStorage.setItem('active_deck', JSON.stringify(activeDeck));
         render();
     }
 
-    function render() {
-        const deckEl = document.getElementById('main-deck');
-        deckEl.innerHTML = '';
-        
-        for(let i=0; i<8; i++) {
-            let slot = document.createElement('div');
-            slot.className = 'card-slot';
-            slot.ondragover = e => e.preventDefault();
-            slot.ondrop = e => handleDrop(e, i);
-            
-            if(activeDeck[i]) {
-                slot.appendChild(createCardUI(activeDeck[i], i, true));
-            }
-            deckEl.appendChild(slot);
-        }
-
-        const reserveEl = document.getElementById('reserve-list');
-        reserveEl.innerHTML = '';
-        collection.forEach((card) => {
-            // В резерве показываем только те карты, которые НЕ стоят в основе
-            if(!activeDeck.some(c => c.id === card.id)) {
-                reserveEl.appendChild(createCardUI(card, null, false));
-            }
-        });
-    }
-
-    function createCardUI(card, index, isInDeck) {
-        const div = document.createElement('div');
-        div.className = `card-item rarity-${card.rarity}`;
-        div.draggable = true;
-        div.innerHTML = `<div class="rat" style="color:${getRareColor(card.rarity)}">${card.rating}</div>
-                         <div class="name">${card.name}</div>
-                         <div class="cls">${card.class}</div>`;
-        
-        div.ondragstart = (e) => {
-            e.dataTransfer.setData('cardId', card.id);
-        };
-        return div;
-    }
-
-    function handleDrop(e, slotIndex) {
-        e.preventDefault();
-        const cardId = parseFloat(e.dataTransfer.getData('cardId'));
-        const draggedCard = collection.find(c => c.id === cardId);
-
-        if(draggedCard) {
-            // Если эта карта уже была в другом слоте основы — убираем её оттуда (чтобы не было дублей в бою)
-            const existingIndex = activeDeck.findIndex(c => c && c.id === cardId);
-            if(existingIndex !== -1) activeDeck[existingIndex] = null;
-
-            // Ставим карту в новый слот
-            activeDeck[slotIndex] = draggedCard;
-            
-            localStorage.setItem('active_deck', JSON.stringify(activeDeck.filter(c => c !== null)));
-            render();
-        }
-    }
-
-    function getRareColor(r) {
-        if(r === 'мифический') return '#f44336';
-        if(r === 'эпический') return '#e040fb';
-        if(r === 'редкий') return '#2196F3';
-        return '#fff';
-    }
-
-    loadData();
+    render();
 </script>
 </body>
 </html>
