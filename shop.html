@@ -20,11 +20,26 @@
         .gift-box span { font-size: 40px; display: block; margin-bottom: 5px; }
 
         .pack-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 10px; perspective: 1000px; }
-        .pack-card { width: 130px; height: 190px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+        
+        /* Стили для 3D поворота */
+        .pack-card { width: 130px; height: 190px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; }
         .pack-card.flipped { transform: rotateY(180deg); }
-        .pack-front, .pack-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
+        
+        .pack-front, .pack-back { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; background: #111; 
+        }
         .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 11px; padding: 10px; box-sizing: border-box; text-align: center; }
         
+        /* Кнопка инфо */
+        .info-btn {
+            position: absolute; top: 5px; right: 5px; width: 22px; height: 22px;
+            background: rgba(255,255,255,0.2); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold; cursor: pointer; z-index: 10;
+        }
+
         #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.9); flex-direction: column; }
         .flip-container { width: 240px; height: 340px; perspective: 1000px; }
         .flipper { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -65,17 +80,34 @@
     <div id="starter-section" style="width: 100%; display: flex; justify-content: center; margin-bottom: 20px;"></div>
     
     <div class="pack-container">
-        <div class="pack-card" onclick="buyPack('common', 150)">
-            <div class="pack-front"><span>📦</span><b>ОБЫЧНЫЙ</b><p>150 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Обычный: 80%<br>Редкий: 20%</div>
+        <div class="pack-card" id="p-common">
+            <div class="info-btn" onclick="toggleInfo('p-common')">i</div>
+            <div class="pack-front" onclick="buyPack('common', 150)">
+                <span>📦</span><b>ОБЫЧНЫЙ</b><p>150 C</p>
+            </div>
+            <div class="pack-back" onclick="toggleInfo('p-common')">
+                <b>ШАНСЫ:</b><br>Обычный: 85%<br>Редкий: 14%<br>Эпик: 1%
+            </div>
         </div>
-        <div class="pack-card" onclick="buyPack('epic', 300)">
-            <div class="pack-front"><span>💎</span><b>ЭПИЧЕСКИЙ</b><p>300 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Редкий: 70%<br>Эпик: 30%</div>
+
+        <div class="pack-card" id="p-epic">
+            <div class="info-btn" onclick="toggleInfo('p-epic')">i</div>
+            <div class="pack-front" onclick="buyPack('epic', 300)">
+                <span>💎</span><b>ЭПИЧЕСКИЙ</b><p>300 C</p>
+            </div>
+            <div class="pack-back" onclick="toggleInfo('p-epic')">
+                <b>ШАНСЫ:</b><br>Редкий: 70%<br>Эпик: 28%<br>Мифик: 2%
+            </div>
         </div>
-        <div class="pack-card" onclick="buyPack('legend', 500)">
-            <div class="pack-front"><span>👑</span><b>ЛЕГЕНДА</b><p>500 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Эпик: 60%<br>Мифик: 40%</div>
+
+        <div class="pack-card" id="p-legend">
+            <div class="info-btn" onclick="toggleInfo('p-legend')">i</div>
+            <div class="pack-front" onclick="buyPack('legend', 500)">
+                <span>👑</span><b>ЛЕГЕНДА</b><p>500 C</p>
+            </div>
+            <div class="pack-back" onclick="toggleInfo('p-legend')">
+                <b>ШАНСЫ:</b><br>Редкий: 20%<br>Эпик: 70%<br>Мифик: 10%
+            </div>
         </div>
     </div>
 </div>
@@ -117,6 +149,11 @@
     document.getElementById('coins-val').innerText = coins;
     let currentCard = null;
     let isOpening = false;
+
+    function toggleInfo(id) {
+        event.stopPropagation();
+        document.getElementById(id).classList.toggle('flipped');
+    }
 
     function checkGifts() {
         if(localStorage.getItem('gift_ny_pack')) document.getElementById('gift-pack-btn').style.opacity = "0.3";
@@ -165,9 +202,25 @@
 
     function buyPack(type, price) {
         if(coins < price) { alert("Мало монет!"); return; }
+        
         let r = null;
-        if(type === 'epic') r = Math.random() > 0.3 ? 'эпический' : 'редкий';
-        if(type === 'legend') r = Math.random() > 0.4 ? 'мифический' : 'эпический';
+        let roll = Math.random() * 100;
+
+        if(type === 'common') {
+            if(roll < 1) r = 'эпический';
+            else if(roll < 15) r = 'редкий';
+            else r = 'обычный';
+        } 
+        else if(type === 'epic') {
+            if(roll < 2) r = 'мифический';
+            else if(roll < 30) r = 'эпический';
+            else r = 'редкий';
+        } 
+        else if(type === 'legend') {
+            if(roll < 10) r = 'мифический';
+            else if(roll < 80) r = 'эпический';
+            else r = 'редкий';
+        }
         
         currentCard = generateCard(r);
         coins -= price;
