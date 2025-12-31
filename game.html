@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Clash Of IT - Battle</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', sans-serif; color: white; user-select: none; touch-action: none; display: flex; flex-direction: column; height: 100vh; }
         #game-ui { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -24,9 +25,36 @@
         #countdown { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; font-size: 80px; background: rgba(0,0,0,0.5); z-index: 2000; color: #00fbff; font-weight: bold; }
         #game-msg-box { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.95); z-index: 9999; }
         .btn { padding: 8px 10px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; font-size: 9px; text-transform: uppercase; }
+
+        /* Стили лобби */
+        #lobby-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+        .lobby-window { background: #222; padding: 25px; border: 2px solid #444; border-radius: 15px; text-align: center; width: 300px; }
+        .id-box { background: #000; padding: 10px; margin: 10px 0; font-family: monospace; color: #00fbff; border: 1px dashed #555; cursor: pointer; }
+        .lobby-status { margin: 15px 0; font-size: 14px; }
     </style>
 </head>
 <body>
+
+<div id="lobby-overlay">
+    <div id="lobby-choice" class="lobby-window">
+        <h2>ВЫБЕРИТЕ РЕЖИМ</h2>
+        <button class="btn" style="background:#4CAF50; padding:15px; width:100%; margin-bottom:10px;" onclick="startBotMode()">ПРОТИВ БОТА</button>
+        <button class="btn" style="background:#2196F3; padding:15px; width:100%;" onclick="openLobbyMenu()">ЛОББИ 1 НА 1</button>
+    </div>
+
+    <div id="lobby-main" class="lobby-window" style="display:none;">
+        <h3>ВАШ ID:</h3>
+        <div class="id-box" id="my-id-display" onclick="copyID()">Загрузка...</div>
+        <input type="text" id="friend-id-input" placeholder="ID ДРУГА" style="width:90%; padding:10px; margin-bottom:10px; background:#111; color:white; border:1px solid #555;">
+        <button class="btn" style="background:#2196F3; width:100%;" onclick="connectToFriend()">ЗАЙТИ К ДРУГУ</button>
+        
+        <div id="lobby-wait" style="display:none;">
+            <div class="lobby-status">ВЫ: <span id="p1-status" style="color:red">🔴</span></div>
+            <div class="lobby-status">ДРУГ: <span id="p2-status" style="color:red">🔴</span></div>
+            <button id="ready-btn" class="btn" style="background:#4CAF50; width:100%; height:40px;" onclick="toggleReady()">ГОТОВ</button>
+        </div>
+    </div>
+</div>
 
 <div id="top-bar">03:00</div>
 <div id="game-ui">
@@ -56,6 +84,41 @@
 <script src="assets.js"></script>
 
 <script>
+// --- ПЕРЕМЕННЫЕ СЕТИ ---
+let peer = new Peer();
+let conn = null;
+let isLobbyMode = false;
+let amIReady = false;
+let isFriendReady = false;
+let isHost = false;
+
+peer.on('open', id => document.getElementById('my-id-display').innerText = id);
+peer.on('connection', c => { conn = c; isHost = true; setupConn(); document.getElementById('lobby-wait').style.display='block'; });
+
+function openLobbyMenu() { document.getElementById('lobby-choice').style.display='none'; document.getElementById('lobby-main').style.display='block'; }
+function copyID() { navigator.clipboard.writeText(document.getElementById('my-id-display').innerText); alert("ID Скопирован!"); }
+function connectToFriend() {
+    let fid = document.getElementById('friend-id-input').value;
+    if(!fid) return;
+    conn = peer.connect(fid); isHost = false; setupConn(); document.getElementById('lobby-wait').style.display='block';
+}
+
+function setupConn() {
+    conn.on('data', data => {
+        if(data.type === 'ready') { isFriendReady = data.val; updateLobbyUI(); checkLobbyStart(); }
+        if(data.type === 'spawn') { spawnUnit(CLASS_STATS[data.key.toLowerCase()], BW - data.x, BH - data.y, 'enemy'); }
+    });
+}
+
+function toggleReady() { amIReady = !amIReady; conn.send({type:'ready', val: amIReady}); updateLobbyUI(); checkLobbyStart(); }
+function updateLobbyUI() {
+    document.getElementById('p1-status').innerText = amIReady ? "🟢" : "🔴";
+    document.getElementById('p2-status').innerText = isFriendReady ? "🟢" : "🔴";
+}
+function checkLobbyStart() { if(amIReady && isFriendReady) { isLobbyMode = true; document.getElementById('lobby-overlay').style.display='none'; startGame(); } }
+function startBotMode() { isLobbyMode = false; document.getElementById('lobby-overlay').style.display='none'; startGame(); }
+
+// --- ТВОЙ ОРИГИНАЛЬНЫЙ КОД ГЕЙМПЛЕЯ ---
 const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
 const BW = 500, BH = 900, ROWS = 16, COLS = 8, cellW = BW / COLS, cellH = BH / ROWS;
 
@@ -139,7 +202,8 @@ function updateGame() {
     document.getElementById('elixir-val').innerText = Math.floor(elixir);
     document.querySelectorAll('.elixir-fill-inner').forEach((c, i) => { c.style.width = (Math.max(0, Math.min(1, elixir - i)) * 100) + "%"; });
 
-    if(enemyElixir >= 5 && Date.now() - lastEnemySpawn > 3500) {
+    // БОТ РАБОТАЕТ ТОЛЬКО ЕСЛИ НЕ РЕЖИМ ЛОББИ
+    if(!isLobbyMode && enemyElixir >= 5 && Date.now() - lastEnemySpawn > 3500) {
         let keys = Object.keys(CLASS_STATS);
         let randKey = keys[Math.floor(Math.random()*keys.length)];
         let u = CLASS_STATS[randKey];
@@ -237,7 +301,6 @@ function renderLoop() {
         if(hp <= 0) return;
         let vX = obj.x * s, vY = obj.y * s, floatY = obj.isAir ? Math.sin(Date.now()/200)*5 : 0;
         
-        // РИСУЕМ БАШНЮ ИЗ ASSETS.JS
         if (obj.type === 'Башня') {
             drawTowerAsset(ctx, obj, vX, vY, s);
             drawBar(vX, vY - 80*s, hp, mHp, s, obj.type);
@@ -287,6 +350,8 @@ window.onpointerup = (e) => {
         let canPlace = (p.y > BH/2 && p.y <= BH && p.x >=0 && p.x <= BW);
         if(canPlace && elixir >= c.cost) {
             spawnUnit(c, p.x, p.y, 'player');
+            // ОТПРАВЛЯЕМ СПАВН ДРУГУ
+            if(isLobbyMode && conn) conn.send({type:'spawn', key: c.type, x: p.x, y: p.y});
             elixir -= c.cost; 
             let nextCard = getCard();
             if(nextCard) hand[draggingCardIdx] = nextCard;
@@ -329,7 +394,6 @@ function endGame(m) {
 
 window.onresize = resize; 
 resize();
-startGame(); 
 </script>
 </body>
 </html>
