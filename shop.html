@@ -9,7 +9,6 @@
         .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
         #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; transition: 0.5s; overflow-y: auto; height: 100vh; }
         
-        /* Стили подарков */
         .holiday-section { display: flex; gap: 15px; margin-bottom: 25px; width: 100%; justify-content: center; }
         .gift-box { 
             width: 150px; padding: 15px; border-radius: 15px; text-align: center; cursor: pointer;
@@ -45,7 +44,7 @@
 <div id="main-content">
     <div class="header">
         <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">НАЗАД</button>
-        <div style="color:gold; font-size: 24px; font-weight: bold;">💰 <span id="coins-val">500</span></div>
+        <div style="color:gold; font-size: 24px; font-weight: bold;">💰 <span id="coins-val">0</span></div>
     </div>
     
     <h2 style="text-align:center; color:#00fbff; margin:0;">❄️ НОВЫЙ ГОД ❄️</h2>
@@ -68,15 +67,15 @@
     <div class="pack-container">
         <div class="pack-card" onclick="buyPack('common', 150)">
             <div class="pack-front"><span>📦</span><b>ОБЫЧНЫЙ</b><p>150 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Обычный: 90%<br>Редкий: 10%</div>
+            <div class="pack-back"><b>ШАНСЫ:</b><br>Обычный: 80%<br>Редкий: 20%</div>
         </div>
         <div class="pack-card" onclick="buyPack('epic', 300)">
             <div class="pack-front"><span>💎</span><b>ЭПИЧЕСКИЙ</b><p>300 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Редкий: 80%<br>Эпик: 20%</div>
+            <div class="pack-back"><b>ШАНСЫ:</b><br>Редкий: 70%<br>Эпик: 30%</div>
         </div>
         <div class="pack-card" onclick="buyPack('legend', 500)">
             <div class="pack-front"><span>👑</span><b>ЛЕГЕНДА</b><p>500 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Эпик: 70%<br>Легенда: 30%</div>
+            <div class="pack-back"><b>ШАНСЫ:</b><br>Эпик: 60%<br>Мифик: 40%</div>
         </div>
     </div>
 </div>
@@ -89,10 +88,10 @@
                 <div id="pack-icon" style="font-size: 80px;">📦</div>
             </div>
             <div id="card-result" class="card-result">
-                <div id="c-rat" style="position:absolute; top:20px; left:20px; font-size:32px; font-weight:bold; color:gold;"></div>
+                <div id="c-rat" style="position:absolute; top:20px; left:20px; font-size:32px; font-weight:bold;"></div>
                 <h2 id="c-name" style="margin-bottom:5px;">ИМЯ</h2>
                 <p id="c-class" style="color:#00fbff; font-weight:bold; margin:0;"></p>
-                <p id="c-rarity" style="margin-top:15px; font-size:14px; text-transform:uppercase; color:#aaa;"></p>
+                <p id="c-rarity" style="margin-top:15px; font-size:14px; text-transform:uppercase;"></p>
             </div>
         </div>
     </div>
@@ -101,10 +100,17 @@
 
 <script>
     const MY_CHARS = [
-        {n:"Мансур", c:"армия", r:"обычный"}, {n:"Акылжан", c:"медик", r:"обычный"},
-        {n:"Нурасыл", c:"турель", r:"обычный"}, {n:"Ерасыл", c:"летун", r:"обычный"},
-        {n:"Максат", c:"лучник", r:"обычный"}, {n:"Димаш", c:"ближник", r:"редкий"},
-        {n:"Темирлан", c:"танк", r:"обычный"}, {n:"Санжар", c:"рой", r:"обычный"}
+        {n:"Димаш", c:"ближник", r:"редкий"}, {n:"Бексултан", c:"летун", r:"редкий"},
+        {n:"Мансур", c:"мини армия", r:"обычный"}, {n:"Бекболат", c:"танк", r:"эпический"},
+        {n:"Дастен", c:"турель", r:"эпический"}, {n:"Бейбарыс", c:"танк", r:"редкий"},
+        {n:"Бибарыс", c:"ближник", r:"редкий"}, {n:"Акылжан", c:"медик", r:"обычный"},
+        {n:"Нурасыл", c:"турель", r:"обычный"}, {n:"Зу. Ерасыл", c:"летун", r:"обычный"},
+        {n:"Абдурахман", c:"рой", r:"редкий"}, {n:"Бекзат", c:"ближник", r:"эпический"},
+        {n:"Аскар", c:"медик", r:"эпический"}, {n:"Арафат", c:"лучник", r:"мифический"},
+        {n:"Зангар", c:"лучник", r:"эпический"}, {n:"Нуралим", c:"танк", r:"редкий"},
+        {n:"Максат", c:"лучник", r:"обычный"}, {n:"Берик", c:"медик", r:"мифический"},
+        {n:"Динмухамд", c:"летун", r:"редкий"}, {n:"За. Ерасыл", c:"рой", r:"обычный"},
+        {n:"Бекнур", c:"мини армия", r:"эпический"}
     ];
 
     let coins = parseInt(localStorage.getItem('it_coins') || 500);
@@ -112,7 +118,6 @@
     let currentCard = null;
     let isOpening = false;
 
-    // ПРОВЕРКА ПОДАРКОВ
     function checkGifts() {
         if(localStorage.getItem('gift_ny_pack')) document.getElementById('gift-pack-btn').style.opacity = "0.3";
         if(localStorage.getItem('gift_ny_coins')) document.getElementById('gift-coins-btn').style.opacity = "0.3";
@@ -128,30 +133,43 @@
         checkGifts();
     }
 
+    function generateCard(forcedRarity = null) {
+        let randChar = MY_CHARS[Math.floor(Math.random() * MY_CHARS.length)];
+        let rarity = forcedRarity || randChar.r;
+        let rating = 50;
+        let statMod = 1.0;
+
+        if (rarity === 'мифический') {
+            rating = Math.floor(Math.random() * (99 - 97 + 1)) + 97;
+            statMod = 1.10;
+        } else if (rarity === 'эпический') {
+            rating = Math.floor(Math.random() * (96 - 90 + 1)) + 90;
+            statMod = 1.05;
+        } else if (rarity === 'редкий') {
+            rating = Math.floor(Math.random() * (89 - 75 + 1)) + 75;
+            statMod = 1.02;
+        } else {
+            rating = Math.floor(Math.random() * (74 - 50 + 1)) + 50;
+            statMod = 0.95;
+        }
+
+        return { name: randChar.n, class: randChar.c, rarity: rarity, rating: rating, statMod: statMod, id: Date.now() + Math.random() };
+    }
+
     function claimNewYearPack() {
         if(localStorage.getItem('gift_ny_pack')) { alert("Вы уже забрали новогодний пак!"); return; }
-        
-        // Генерация как в эпик паке
-        let randChar = MY_CHARS[Math.floor(Math.random() * MY_CHARS.length)];
-        let rarity = Math.random() > 0.8 ? 'эпический' : 'редкий';
-        let rating = rarity === 'эпический' ? 88 : 82;
-
-        currentCard = {
-            name: randChar.n, class: randChar.c, rarity: rarity,
-            rating: rating, id: Date.now()
-        };
-
+        currentCard = generateCard(Math.random() > 0.7 ? 'эпический' : 'редкий');
         localStorage.setItem('gift_ny_pack', 'true');
         setupOverlay('ny');
     }
 
     function buyPack(type, price) {
         if(coins < price) { alert("Мало монет!"); return; }
-        let randChar = MY_CHARS[Math.floor(Math.random() * MY_CHARS.length)];
-        let rarity = (type === 'legend') ? 'легендарный' : (type === 'epic' ? 'редкий' : randChar.r);
-        let rating = (rarity === 'легендарный') ? 92 : (rarity === 'редкий' ? 82 : 70);
+        let r = null;
+        if(type === 'epic') r = Math.random() > 0.3 ? 'эпический' : 'редкий';
+        if(type === 'legend') r = Math.random() > 0.4 ? 'мифический' : 'эпический';
         
-        currentCard = { name: randChar.n, class: randChar.c, rarity: rarity, rating: rating, id: Date.now() + Math.random() };
+        currentCard = generateCard(r);
         coins -= price;
         localStorage.setItem('it_coins', coins);
         document.getElementById('coins-val').innerText = coins;
@@ -177,7 +195,7 @@
         document.getElementById('main-content').style.filter = 'blur(10px)';
         overlay.style.display = 'flex';
         document.getElementById('claim-btn').style.display = 'none';
-        document.getElementById('pack-label').innerText = type === 'ny' ? "НОВОГОДНИЙ ПОДАРОК" : "НАЖМИ НА ПАК";
+        document.getElementById('pack-label').innerText = "НАЖМИ НА ПАК";
     }
 
     function handlePackClick() {
@@ -187,8 +205,12 @@
         const overlay = document.getElementById('opening-overlay');
         const flipper = document.getElementById('flipper');
         
-        let pColor = currentCard.rarity === 'редкий' ? 'rgba(33,150,243,0.7)' : (currentCard.rarity === 'легендарный' ? 'rgba(255,215,0,0.7)' : 'rgba(0, 251, 255, 0.7)');
-        overlay.style.setProperty('--p-col', pColor);
+        let color = "#ffffff";
+        if(currentCard.rarity === 'мифический') color = "#ff0000";
+        else if(currentCard.rarity === 'эпический') color = "#e040fb";
+        else if(currentCard.rarity === 'редкий') color = "#2196F3";
+
+        overlay.style.setProperty('--p-col', color + "88");
         overlay.classList.add('do-flash');
         visual.classList.add('shaking');
 
@@ -197,13 +219,11 @@
             document.getElementById('c-name').innerText = currentCard.name;
             document.getElementById('c-class').innerText = currentCard.class.toUpperCase();
             document.getElementById('c-rat').innerText = currentCard.rating;
+            document.getElementById('c-rat').style.color = (currentCard.rarity === 'мифический') ? '#ff4444' : 'gold';
             document.getElementById('c-rarity').innerText = currentCard.rarity;
-            
-            let bCol = "#8b4513";
-            if(currentCard.rarity === 'редкий') bCol = "#2196F3";
-            if(currentCard.rarity === 'эпический') bCol = "#e040fb";
-            if(currentCard.rarity === 'легендарный') bCol = "gold";
-            document.getElementById('card-result').style.borderColor = bCol;
+            document.getElementById('c-rarity').style.color = color;
+            document.getElementById('card-result').style.borderColor = color;
+            document.getElementById('card-result').style.boxShadow = `0 0 30px ${color}`;
 
             flipper.style.transform = "rotateY(180deg)";
             let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
@@ -222,10 +242,10 @@
     }
 
     function startFreePack() {
-        currentCard = { name: "Димаш", class: "ближник", rarity: "редкий", rating: 82, id: Date.now() };
-        let fullSet = MY_CHARS.map(c => ({ name: c.n, class: c.c, rarity: c.r, rating: (c.r === 'редкий' ? 82 : 70), id: Math.random() + Date.now() }));
+        let fullSet = [];
+        for(let i=0; i<8; i++) fullSet.push(generateCard('обычный'));
         localStorage.setItem('my_collection', JSON.stringify(fullSet));
-        setupOverlay('common');
+        window.location.reload();
     }
 
     checkGifts();
