@@ -154,17 +154,41 @@ for(let i=0; i<10; i++) {
 function getCard() {
     let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]").filter(c => c !== null);
     if(activeDeck.length === 0) return null;
+    
+    // Берем случайную карту из состава
     let data = activeDeck[Math.floor(Math.random() * activeDeck.length)];
     let classKey = data.class.toLowerCase();
+    
+    // Берем базовые статы класса из твоего конфига CLASS_STATS
     let base = CLASS_STATS[classKey] || CLASS_STATS['ближник'];
-    let mod = 1.0;
-    if(data.rarity === 'обычный') mod = 0.95;
-    else if(data.rarity === 'редкий') mod = 1.02;
-    else if(data.rarity === 'эпический') mod = 1.05;
-    else if(data.rarity === 'мифический') mod = 1.10;
-    return { ...base, name: data.name, type: data.class.toUpperCase(), rarity: data.rarity, rating: data.rating, hp: base.hp * mod, curHp: base.hp * mod, damage: base.damage * mod, cost: base.cost };
-}
+    
+    // ПРИМЕНЯЕМ МОДИФИКАТОРЫ РЕДКОСТИ
+    // Если в карте уже есть сохраненный statMod (из магазина), берем его, 
+    // если нет — вычисляем по названию редкости
+    let mod = data.statMod; 
+    if (!mod) {
+        if(data.rarity === 'мифический') mod = 1.10;
+        else if(data.rarity === 'эпический') mod = 1.05;
+        else if(data.rarity === 'редкий') mod = 1.02;
+        else mod = 0.95; // обычный
+    }
 
+    // Рассчитываем итоговые статы
+    let finalHp = Math.round(base.hp * mod);
+    let finalDamage = Math.round(base.damage * mod);
+
+    return { 
+        ...base, 
+        name: data.name, 
+        type: data.class.toUpperCase(), 
+        rarity: data.rarity, 
+        rating: data.rating, 
+        hp: finalHp, 
+        curHp: finalHp, 
+        damage: finalDamage, 
+        cost: base.cost 
+    };
+}
 function startGame() {
     isBuilding = true; document.getElementById('build-ui').style.display = 'flex';
     towers = [
