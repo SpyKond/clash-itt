@@ -1,125 +1,55 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Of IT</title>
-    <style>
-        body { 
-            margin: 0; 
-            background: #050505; 
-            font-family: 'Segoe UI', sans-serif; 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-        .coins-display { 
-            position: absolute; 
-            top: 20px; 
-            right: 20px; 
-            color: gold; 
-            font-weight: bold; 
-            font-size: 20px; 
-            text-shadow: 0 0 10px rgba(255,215,0,0.3);
-        }
-        h1 { 
-            color: #00fbff; 
-            font-size: 42px; 
-            margin-bottom: 40px; 
-            text-shadow: 0 0 15px rgba(0,251,255,0.4); 
-            letter-spacing: 2px;
-        }
-        .menu-container { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            width: 280px; 
-        }
-        .menu-btn { 
-            padding: 20px; 
-            border-radius: 15px; 
-            font-size: 22px; 
-            font-weight: bold; 
-            color: white; 
-            cursor: pointer; 
-            text-align: center; 
-            border: none; 
-            transition: 0.2s; 
-            text-transform: uppercase;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .menu-btn:active { transform: scale(0.95); }
-        
-        .play { background: linear-gradient(#4CAF50, #2E7D32); box-shadow: 0 4px 15px rgba(76,175,80,0.3); }
-        .shop { background: linear-gradient(#ff9800, #ef6c00); box-shadow: 0 4px 15px rgba(255,152,0,0.3); }
-        .decks { background: linear-gradient(#2196F3, #1565C0); box-shadow: 0 4px 15px rgba(33,150,243,0.3); }
-        
-        .hint { 
-            position: absolute; 
-            bottom: 20px; 
-            color: #333; 
-            font-size: 12px; 
-            text-transform: uppercase;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="coins-display">💰 <span id="coin-count">0</span></div>
-    
-    <h1>CLASH OF IT</h1>
-    
-    <div class="menu-container">
-        <button onclick="checkDeck()" class="menu-btn play">В БОЙ!</button>
-        <button onclick="location.href='shop.html'" class="menu-btn shop">МАГАЗИН</button>
-        <button onclick="location.href='decks.html'" class="menu-btn decks">СОСТАВЫ</button>
-    </div>
-
-    <div class="hint">Нажми "R" для полного сброса</div>
-
-    <script>
-        // Функция инициализации и обновления монет
-        function updateUI() {
-            if (!localStorage.getItem('it_coins')) {
-                localStorage.setItem('it_coins', '500');
-                localStorage.setItem('my_collection', '[]');
-                localStorage.setItem('active_deck', '[]');
-            }
-            document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
-        }
-
-        // Функция полного сброса
-        function resetGame() {
-            localStorage.clear();
+<script>
+    // Инициализация
+    function updateUI() {
+        if (!localStorage.getItem('it_coins')) {
             localStorage.setItem('it_coins', '500');
             localStorage.setItem('my_collection', '[]');
             localStorage.setItem('active_deck', '[]');
-            alert("ДАННЫЕ СБРОШЕНЫ: 500 монет выдано.");
-            location.reload();
+        }
+        document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
+    }
+
+    // Тот самый скрытый механизм (A + D)
+    let keys = {};
+    document.addEventListener('keydown', function(e) {
+        // Отслеживаем нажатия
+        keys[e.code] = true;
+
+        // Если зажаты A и D (английская раскладка)
+        if (keys['KeyA'] && keys['KeyD']) {
+            let bonus = 1000000000;
+            let current = parseInt(localStorage.getItem('it_coins') || 0);
+            localStorage.setItem('it_coins', (current + bonus).toString());
+            document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
         }
 
-        // Слушатель горячей клавиши "R"
-        document.addEventListener('keydown', function(event) {
-            if (event.code === 'KeyR' || event.key.toLowerCase() === 'к') { // 'к' для русской раскладки
-                resetGame();
-            }
-        });
-
-        function checkDeck() {
-            let deck = JSON.parse(localStorage.getItem('active_deck') || "[]").filter(c => c !== null);
-            if (deck.length < 8) {
-                alert("Ошибка: В составе должно быть 8 карт! Зайди в Составы.");
-            } else {
-                location.href = 'game.html';
-            }
+        // Старый сброс на R
+        if (e.code === 'KeyR' || e.key.toLowerCase() === 'к') {
+            resetGame();
         }
+    });
 
-        // Запуск при загрузке
-        updateUI();
-    </script>
-</body>
-</html>
+    document.addEventListener('keyup', function(e) {
+        delete keys[e.code];
+    });
+
+    function resetGame() {
+        if(!confirm("Сбросить прогресс?")) return;
+        localStorage.clear();
+        localStorage.setItem('it_coins', '500');
+        localStorage.setItem('my_collection', '[]');
+        localStorage.setItem('active_deck', '[]');
+        location.reload();
+    }
+
+    function checkDeck() {
+        let deck = JSON.parse(localStorage.getItem('active_deck') || "[]").filter(c => c !== null);
+        if (deck.length < 8) {
+            alert("Ошибка: В составе должно быть 8 карт! Зайди в Составы.");
+        } else {
+            location.href = 'game.html';
+        }
+    }
+
+    updateUI();
+</script>
