@@ -29,7 +29,7 @@
         h1 { 
             color: #00fbff; 
             font-size: 42px; 
-            margin-bottom: 40px; 
+            margin-bottom: 30px; 
             text-shadow: 0 0 15px rgba(0,251,255,0.4); 
             letter-spacing: 2px;
         }
@@ -40,9 +40,9 @@
             width: 280px; 
         }
         .menu-btn { 
-            padding: 20px; 
+            padding: 18px; 
             border-radius: 15px; 
-            font-size: 22px; 
+            font-size: 20px; 
             font-weight: bold; 
             color: white; 
             cursor: pointer; 
@@ -53,18 +53,17 @@
             -webkit-tap-highlight-color: transparent;
         }
         .menu-btn:active { transform: scale(0.95); }
-        
         .play { background: linear-gradient(#4CAF50, #2E7D32); box-shadow: 0 4px 15px rgba(76,175,80,0.3); }
         .shop { background: linear-gradient(#ff9800, #ef6c00); box-shadow: 0 4px 15px rgba(255,152,0,0.3); }
         .decks { background: linear-gradient(#2196F3, #1565C0); box-shadow: 0 4px 15px rgba(33,150,243,0.3); }
+        .profile-btn { background: #333; border: 1px solid #555; font-size: 14px; padding: 10px; }
+
+        /* Модалка ника */
+        #naming-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10000; }
+        .naming-box { background:#111; padding:30px; border-radius:20px; border:2px solid #00fbff; text-align:center; }
+        input { padding:12px; border-radius:10px; border:none; width:200px; margin:15px 0; text-align:center; font-size:18px; }
         
-        .hint { 
-            position: absolute; 
-            bottom: 20px; 
-            color: #333; 
-            font-size: 12px; 
-            text-transform: uppercase;
-        }
+        .hint { position: absolute; bottom: 20px; color: #333; font-size: 10px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -77,12 +76,22 @@
         <button onclick="checkDeck()" class="menu-btn play">В БОЙ!</button>
         <button onclick="location.href='shop.html'" class="menu-btn shop">МАГАЗИН</button>
         <button onclick="location.href='decks.html'" class="menu-btn decks">СОСТАВЫ</button>
+        <button onclick="location.href='profile.html'" class="menu-btn profile-btn">МОЙ ПРОФИЛЬ</button>
     </div>
 
-    <div class="hint">Нажми "R" для полного сброса</div>
+    <div id="naming-overlay" style="display:none;">
+        <div class="naming-box">
+            <h2>КТО ТЫ, ВОИН?</h2>
+            <p style="color:#888;">Придумай себе никнейм</p>
+            <input type="text" id="nick-input" placeholder="Введите ник...">
+            <br>
+            <button onclick="saveInitialProfile()" class="menu-btn play" style="padding:10px 30px; font-size:16px;">НАЧАТЬ</button>
+        </div>
+    </div>
+
+    <div class="hint">F12 - Админ Панель | R - Сброс</div>
 
     <script>
-        // Инициализация данных
         function updateUI() {
             if (!localStorage.getItem('it_coins')) {
                 localStorage.setItem('it_coins', '500');
@@ -90,50 +99,73 @@
                 localStorage.setItem('active_deck', '[]');
             }
             document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
+
+            // Проверка профиля
+            if (!localStorage.getItem('user_profile')) {
+                document.getElementById('naming-overlay').style.display = 'flex';
+            }
         }
 
-        // Система скрытого ввода (A + D)
-        let activeKeys = {};
-        document.addEventListener('keydown', function(e) {
-            activeKeys[e.code] = true;
+        function saveInitialProfile() {
+            let nick = document.getElementById('nick-input').value.trim();
+            if (nick.length < 2) return alert("Ник слишком короткий!");
+            
+            let profile = {
+                name: nick,
+                id: "ID-" + Math.floor(Math.random() * 900000 + 100000),
+                wins: 0, losses: 0, draws: 0
+            };
+            localStorage.setItem('user_profile', JSON.stringify(profile));
+            document.getElementById('naming-overlay').style.display = 'none';
+        }
 
-            // Проверка комбинации A и D
-            if (activeKeys['KeyA'] && activeKeys['KeyD']) {
-                let current = parseInt(localStorage.getItem('it_coins') || 0);
-                localStorage.setItem('it_coins', (current + 1000000000).toString());
-                document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
+        // АДМИН ПАНЕЛЬ
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.code === 'Backquote') {
+                e.preventDefault();
+                showAdminPanel();
             }
-
-            // Стандартный сброс на R
-            if (e.code === 'KeyR' || e.key.toLowerCase() === 'к') {
-                resetGame();
+            if (e.code === 'KeyR') {
+                if(confirm("Сбросить всё?")) { localStorage.clear(); location.reload(); }
             }
         });
 
-        document.addEventListener('keyup', function(e) {
-            delete activeKeys[e.code];
-        });
+        function showAdminPanel() {
+            if (document.getElementById('admin-box')) return;
+            let box = document.createElement('div');
+            box.id = 'admin-box';
+            box.style = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; padding:20px; border:2px solid gold; border-radius:15px; z-index:20000; color:white; display:flex; flex-direction:column; gap:8px; width:280px; font-size:12px;";
+            box.innerHTML = `
+                <h3 style="color:gold; margin:0; text-align:center;">КОНСТРУКТОР КОДОВ</h3>
+                Название: <input type="text" id="adm-n" placeholder="NEWCODE" style="padding:5px; margin:0;">
+                Дней: <input type="number" id="adm-d" value="7" style="padding:5px; margin:0;">
+                Монет: <input type="number" id="adm-c" value="0" style="padding:5px; margin:0;">
+                Пак: <select id="adm-p" style="padding:5px;"><option value="none">Нет</option><option value="common">Обычный</option><option value="epic">Эпик</option><option value="legend">Легенда</option></select>
+                <button onclick="genAdminCode()" style="background:gold; border:none; padding:8px; font-weight:bold; margin-top:10px;">СОЗДАТЬ</button>
+                <textarea id="adm-res" style="display:none; margin-top:10px; height:40px; color:black;"></textarea>
+                <button onclick="this.parentElement.remove()" style="background:none; color:grey; border:none;">Закрыть</button>
+            `;
+            document.body.appendChild(box);
+        }
 
-        function resetGame() {
-            if(confirm("Сбросить все данные?")) {
-                localStorage.clear();
-                localStorage.setItem('it_coins', '500');
-                localStorage.setItem('my_collection', '[]');
-                localStorage.setItem('active_deck', '[]');
-                location.reload();
-            }
+        function genAdminCode() {
+            let n = document.getElementById('adm-n').value.toUpperCase();
+            let d = document.getElementById('adm-d').value;
+            let c = document.getElementById('adm-c').value;
+            let p = document.getElementById('adm-p').value;
+            let exp = Date.now() + (d * 24 * 60 * 60 * 1000);
+            let res = `"${n}": { coins: ${c}, pack: "${p}", expire: ${exp} },`;
+            let area = document.getElementById('adm-res');
+            area.value = res; area.style.display = 'block'; area.select();
+            alert("Код в текстовом поле. Скопируй и вставь в shop.html");
         }
 
         function checkDeck() {
             let deck = JSON.parse(localStorage.getItem('active_deck') || "[]").filter(c => c !== null);
-            if (deck.length < 8) {
-                alert("Ошибка: В составе должно быть 8 карт! Зайди в Составы.");
-            } else {
-                location.href = 'game.html';
-            }
+            if (deck.length < 8) alert("Нужно 8 карт в составе!");
+            else location.href = 'game.html';
         }
 
-        // Запуск
         updateUI();
     </script>
 </body>
