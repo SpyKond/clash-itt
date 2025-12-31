@@ -7,7 +7,6 @@
     <style>
         body { background: #050505; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
-        /* Сетка для 8 слотов */
         .active-deck-grid { 
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; 
             width: 95%; max-width: 500px; background: #111; padding: 15px; 
@@ -16,11 +15,10 @@
         .slot { 
             aspect-ratio: 2/3; border: 2px dashed #444; border-radius: 8px; 
             display: flex; align-items: center; justify-content: center; font-size: 10px; color: #555;
-            transition: 0.2s;
+            transition: 0.2s; position: relative;
         }
-        .slot.filled { border: 2px solid #00fbff; background: #002b2e; color: white; border-style: solid; }
+        .slot.filled { background: #002b2e; color: white; border-style: solid; }
 
-        /* Коллекция */
         .collection-grid { 
             display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
             gap: 10px; width: 95%; max-width: 600px; padding: 20px;
@@ -28,13 +26,12 @@
         .card { 
             background: #1a1a1a; border: 2px solid #333; border-radius: 8px; 
             padding: 8px; text-align: center; cursor: grab; position: relative;
-            touch-action: none; /* Важно для перетаскивания пальцем */
-            z-index: 10;
+            touch-action: none; z-index: 10;
         }
         .card.dragging { opacity: 0.5; cursor: grabbing; z-index: 1000; }
         .card.in-deck { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
         
-        .rat { position: absolute; top: 2px; left: 4px; font-weight: bold; color: gold; font-size: 12px; }
+        .rat { position: absolute; top: 2px; left: 4px; font-weight: bold; font-size: 12px; }
         .btn-back { margin-top: 15px; padding: 10px 20px; background: #333; color: white; border: none; border-radius: 8px; }
     </style>
 </head>
@@ -44,59 +41,69 @@
 
     <div class="active-deck-grid" id="deck-slots"></div>
 
-    <h4 style="margin: 15px 0 0 0; color: #666; text-transform: uppercase; font-size: 12px;">Твоя коллекция (тяни карту в слот)</h4>
+    <h4 style="margin: 15px 0 0 0; color: #666; text-transform: uppercase; font-size: 12px;">Коллекция (тяни в слот)</h4>
     <div class="collection-grid" id="collection-grid"></div>
 
     <script>
         let collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
         let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
 
+        function getRarityColor(rarity) {
+            if(rarity === 'мифический') return "#ff0000";
+            if(rarity === 'эпический') return "#e040fb";
+            if(rarity === 'редкий') return "#2196F3";
+            return "#ffffff";
+        }
+
         function render() {
-            // Рендер 8 слотов
             const slotsContainer = document.getElementById('deck-slots');
             slotsContainer.innerHTML = "";
             for (let i = 0; i < 8; i++) {
                 const card = activeDeck[i];
                 const slot = document.createElement('div');
                 slot.className = `slot ${card ? 'filled' : ''}`;
-                slot.dataset.index = i;
                 
                 if (card) {
-                    slot.innerHTML = `<div style="text-align:center"><b>${card.rating}</b><br>${card.name}</div>`;
+                    let color = getRarityColor(card.rarity);
+                    slot.style.borderColor = color;
+                    slot.style.boxShadow = `inset 0 0 10px ${color}44`;
+                    slot.innerHTML = `<div style="text-align:center"><b style="color:gold">${card.rating}</b><br><small>${card.name}</small></div>`;
                     slot.onclick = () => removeCard(i);
                 } else {
                     slot.innerText = "ПУСТО";
+                    slot.style.borderColor = "#444";
+                    slot.style.boxShadow = "none";
                 }
                 slotsContainer.appendChild(slot);
             }
 
-            // Рендер коллекции
             const grid = document.getElementById('collection-grid');
             grid.innerHTML = "";
             collection.forEach(card => {
                 const isInDeck = activeDeck.some(c => c.id === card.id);
                 const cardEl = document.createElement('div');
                 cardEl.className = `card ${isInDeck ? 'in-deck' : ''}`;
-                cardEl.innerHTML = `<div class="rat">${card.rating}</div><div style="font-size:24px;">👤</div><div>${card.name}</div>`;
                 
-                if(!isInDeck) {
-                    addDragListeners(cardEl, card);
-                }
+                let color = getRarityColor(card.rarity);
+                cardEl.style.borderColor = color;
+                if(card.rarity === 'мифический') cardEl.style.boxShadow = "0 0 10px #ff000055";
+
+                cardEl.innerHTML = `
+                    <div class="rat" style="color:${card.rarity==='мифический'?'#ff4444':'gold'}">${card.rating}</div>
+                    <div style="font-size:24px;">👤</div>
+                    <div style="font-size:11px; font-weight:bold;">${card.name}</div>
+                    <div style="font-size:9px; color:${color}">${card.rarity}</div>
+                `;
+                
+                if(!isInDeck) addDragListeners(cardEl, card);
                 grid.appendChild(cardEl);
             });
         }
 
         function addDragListeners(el, cardData) {
-            let startX, startY, initialX, initialY;
-
             el.addEventListener('touchstart', (e) => {
                 const touch = e.touches[0];
                 const rect = el.getBoundingClientRect();
-                startX = touch.clientX;
-                startY = touch.clientY;
-                initialX = rect.left;
-                initialY = rect.top;
-                
                 el.classList.add('dragging');
                 el.style.position = 'fixed';
                 el.style.width = rect.width + 'px';
@@ -111,7 +118,6 @@
                 el.classList.remove('dragging');
                 el.style.position = 'static';
                 el.style.width = 'auto';
-
                 const touch = e.changedTouches[0];
                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
                 const slot = target ? target.closest('.slot') : null;
