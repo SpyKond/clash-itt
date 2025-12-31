@@ -125,9 +125,13 @@
                 e.preventDefault();
                 showAdminPanel();
             }
-            if (e.code === 'KeyR') {
-                if(confirm("Сбросить всё?")) { localStorage.clear(); location.reload(); }
-            }
+            if (e.key === 'F11') {
+    e.preventDefault(); // Это важно, чтобы браузер не переходил в полноэкранный режим
+    if(confirm("Сбросить все данные профиля, монеты и карты?")) { 
+        localStorage.clear(); 
+        location.reload(); 
+    }
+}
         });
 
         function showAdminPanel() {
