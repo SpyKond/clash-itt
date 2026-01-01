@@ -5,67 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Clash Of IT - Магазин</title>
     <style>
-        * { box-sizing: border-box; } /* Защита от вылета за края */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
         
         .header { width: 100%; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 10px; overflow-y: auto; height: 100vh; padding-bottom: 100px; }
+        #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 10px; height: 100vh; overflow-y: auto; padding-bottom: 120px; }
         
-        /* Адаптивная сетка паков */
+        /* Компактная сетка паков */
         .pack-container { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(105px, 120px)); 
-            gap: 10px; 
+            grid-template-columns: repeat(auto-fit, minmax(100px, 115px)); 
+            gap: 12px; 
             width: 100%; 
             justify-content: center; 
             perspective: 1000px; 
-            margin-top: 15px; 
+            margin-top: 10px; 
         }
         
-        .pack-card { width: 110px; height: 160px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+        .pack-card { width: 110px; height: 160px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; cursor: pointer; }
         .pack-card.flipped { transform: rotateY(180deg); }
         
         .pack-front, .pack-back { 
             position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
-            border-radius: 12px; border: 2px solid #333; display: flex; flex-direction: column; 
+            border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; background: #111; 
         }
-        .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 9px; padding: 5px; text-align: center; }
+        .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 9px; padding: 5px; text-align: center; color: #aaa; }
         
-        .info-btn { position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 1px solid #444; z-index: 10; }
+        .info-btn { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 1px solid #444; z-index: 10; }
 
-        /* Цвета паков */
-        .pack-card.common .pack-front, .pack-opening.common { border-color: #888; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .pack-card.epic .pack-front, .pack-opening.epic { border-color: #9C27B0; box-shadow: 0 0 15px rgba(156,39,176,0.3); color: #e1bee7; }
-        .pack-card.legend .pack-front, .pack-opening.legend { border-color: gold; box-shadow: 0 0 20px rgba(255,215,0,0.3); color: gold; }
+        /* Оформление паков */
+        .pack-card.common .pack-front { border-color: #777; }
+        .pack-card.epic .pack-front { border-color: #bf00ff; color: #e1bee7; }
+        .pack-card.legend .pack-front { border-color: gold; color: gold; }
         
-        #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.95); flex-direction: column; }
-        .flipper { position: relative; width: 220px; height: 310px; transform-style: preserve-3d; transition: transform 0.6s; }
-        .pack-opening, .card-result { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
-        .card-result { transform: rotateY(180deg); background: #222; }
+        /* Стили оверлея открытия */
+        #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.98); flex-direction: column; }
+        .flipper { position: relative; width: 230px; height: 330px; transform-style: preserve-3d; transition: transform 0.6s; }
+        
+        .pack-opening, .card-result { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; background: #111; 
+        }
+        .card-result { transform: rotateY(180deg); background: #1a1a1a; }
 
+        /* Анимации */
         .shaking { animation: shake 0.1s infinite, glow-pulse 0.4s infinite alternate; }
         @keyframes shake { 0%{transform:translate(2px,1px)} 50%{transform:translate(-2px,-1px)} 100%{transform:translate(0)} }
-        @keyframes glow-pulse { from { box-shadow: 0 0 20px var(--glow-color); } to { box-shadow: 0 0 80px var(--glow-color); } }
+        @keyframes glow-pulse { from { box-shadow: 0 0 20px var(--glow-color); } to { box-shadow: 0 0 90px var(--glow-color); } }
 
-        .promo-box { margin-top: 25px; background: #111; padding: 15px; border-radius: 15px; border: 1px solid #333; width: 90%; max-width: 280px; text-align: center; }
-        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 100%; text-align: center; text-transform: uppercase; margin-bottom: 10px; }
-        .promo-box button { background: #00fbff; color: black; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
+        /* Промокоды */
+        .promo-box { margin-top: 30px; background: #111; padding: 15px; border-radius: 15px; border: 1px solid #333; width: 95%; max-width: 300px; text-align: center; }
+        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; width: 100%; text-align: center; text-transform: uppercase; margin-bottom: 10px; font-size: 16px; }
+        .promo-box button { background: #00fbff; color: black; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
         
-        .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; display: none; cursor: pointer; }
+        .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; display: none; cursor: pointer; font-size: 16px; box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4); }
         
-        .starter-btn { width: 90%; max-width: 300px; padding: 12px; border: 2px dashed #00fbff; background: rgba(0,251,255,0.05); color: #00fbff; cursor: pointer; border-radius: 10px; font-weight: bold; margin-bottom: 15px; }
+        .starter-btn { width: 95%; max-width: 320px; padding: 15px; border: 2px dashed #00fbff; background: rgba(0,251,255,0.05); color: #00fbff; cursor: pointer; border-radius: 12px; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div id="main-content">
     <div class="header">
-        <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">НАЗАД</button>
-        <div style="color:gold; font-size: 20px; font-weight: bold;">💰 <span id="coins-val">0</span></div>
+        <button onclick="window.location.href='index.html'" style="background:#333; color:white; border:none; padding:10px 18px; border-radius:10px; font-weight:bold;">НАЗАД</button>
+        <div style="color:gold; font-size: 22px; font-weight: bold;">💰 <span id="coins-val">0</span></div>
     </div>
     
-    <h1 style="text-align:center; color:#00fbff; margin: 5px 0;">МАГАЗИН</h1>
+    <h1 style="text-align:center; color:#00fbff; margin: 5px 0 15px 0;">МАГАЗИН</h1>
     
     <div id="starter-section"></div>
     
@@ -73,7 +81,7 @@
         <div class="pack-card common" id="p-common">
             <div class="pack-front" onclick="buyPack('common', 150)">
                 <div class="info-btn" onclick="toggleInfo('p-common')">i</div>
-                <span style="font-size:40px">📦</span><b>ОБЫЧНЫЙ</b><p>150 C</p>
+                <span style="font-size:45px">📦</span><b>ОБЫЧНЫЙ</b><p>150 C</p>
             </div>
             <div class="pack-back" onclick="toggleInfo('p-common')"><b>ШАНСЫ:</b><br>Обыч: 85%<br>Ред: 14%<br>Эпик: 1%</div>
         </div>
@@ -81,7 +89,7 @@
         <div class="pack-card epic" id="p-epic">
             <div class="pack-front" onclick="buyPack('epic', 300)">
                 <div class="info-btn" onclick="toggleInfo('p-epic')">i</div>
-                <span style="font-size:40px">💎</span><b>ЭПИЧЕСКИЙ</b><p>300 C</p>
+                <span style="font-size:45px">💎</span><b>ЭПИЧЕСКИЙ</b><p>300 C</p>
             </div>
             <div class="pack-back" onclick="toggleInfo('p-epic')"><b>ШАНСЫ:</b><br>Ред: 70%<br>Эпик: 28%<br>Миф: 2%</div>
         </div>
@@ -89,7 +97,7 @@
         <div class="pack-card legend" id="p-legend">
             <div class="pack-front" onclick="buyPack('legend', 500)">
                 <div class="info-btn" onclick="toggleInfo('p-legend')">i</div>
-                <span style="font-size:40px">👑</span><b>КОРОЛЕВСКИЙ</b><p>500 C</p>
+                <span style="font-size:45px">👑</span><b>КОРОЛЕВСКИЙ</b><p>500 C</p>
             </div>
             <div class="pack-back" onclick="toggleInfo('p-legend')"><b>ШАНСЫ:</b><br>Ред: 20%<br>Эпик: 70%<br>Миф: 10%</div>
         </div>
@@ -104,17 +112,17 @@
 <div id="opening-overlay">
     <div class="flipper" id="flipper" onclick="handlePackClick()">
         <div id="pack-visual" class="pack-opening">
-            <h2 id="tap-hint">НАЖМИ!</h2>
-            <div id="pack-icon" style="font-size: 70px;">📦</div>
+            <h2 id="tap-hint">ЖМИ!</h2>
+            <div id="pack-icon" style="font-size: 80px;">📦</div>
         </div>
         <div id="card-result" class="card-result">
-            <div id="c-rat" style="position:absolute; top:15px; left:15px; font-size:28px; font-weight:bold;"></div>
-            <h2 id="c-name" style="font-size: 18px;">ИМЯ</h2>
-            <p id="c-class" style="color:#00fbff; font-weight:bold; font-size: 12px;"></p>
-            <p id="c-rarity" style="margin-top:10px; font-size:12px; text-transform:uppercase;"></p>
+            <div id="c-rat" style="position:absolute; top:20px; left:20px; font-size:32px; font-weight:bold; color:gold;"></div>
+            <h2 id="c-name" style="margin:0; font-size:22px;">ИМЯ</h2>
+            <p id="c-class" style="color:#00fbff; font-weight:bold; margin:5px 0; font-size:14px;"></p>
+            <p id="c-rarity" style="margin-top:20px; font-size:14px; text-transform:uppercase; font-weight:bold;"></p>
         </div>
     </div>
-    <button id="claim-btn" class="btn-claim" onclick="location.reload()">В КОЛЛЕКЦИЮ</button>
+    <button id="claim-btn" class="btn-claim" onclick="closeOpening()">ЗАБРАТЬ КАРТУ</button>
 </div>
 
 <script>
@@ -138,11 +146,10 @@
     let currentCard = null;
     let isOpening = false;
 
-    window.onload = () => { renderStarter(); };
+    window.onload = renderStarter;
 
     function toggleInfo(id) { event.stopPropagation(); document.getElementById(id).classList.toggle('flipped'); }
 
-    // ЕДИНАЯ СИСТЕМА ШАНСОВ
     function getRarityByType(type) {
         let rand = Math.random();
         if (type === 'legend') {
@@ -168,7 +175,7 @@
     }
 
     function buyPack(type, price) {
-        if(coins < price) return alert("Мало монет!");
+        if(coins < price) return alert("Недостаточно монет!");
         coins -= price;
         localStorage.setItem('it_coins', coins);
         document.getElementById('coins-val').innerText = coins;
@@ -208,7 +215,9 @@
             document.getElementById('c-rat').innerText = currentCard.rating;
             document.getElementById('c-rarity').innerText = currentCard.rarity;
             
-            let rColor = (currentCard.rarity === 'мифический') ? "#ff0000" : (currentCard.rarity === 'эпический' ? "#bf00ff" : "#fff");
+            let rColor = (currentCard.rarity === 'мифический') ? "#ff0000" : (currentCard.rarity === 'эпический' ? "#bf00ff" : "#00fbff");
+            if(currentCard.rarity === 'обычный') rColor = "#888";
+            
             document.getElementById('c-rarity').style.color = rColor;
             document.getElementById('flipper').style.transform = "rotateY(180deg)";
             
@@ -219,19 +228,29 @@
         }, 1200);
     }
 
+    function closeOpening() {
+        document.getElementById('opening-overlay').style.display = 'none';
+        document.getElementById('flipper').style.transform = "rotateY(0deg)";
+        currentCard = null;
+        isOpening = false;
+        renderStarter();
+    }
+
     async function activatePromo() {
         const val = document.getElementById('promo-input').value.trim().toUpperCase();
         if(!val) return;
 
         let used = JSON.parse(localStorage.getItem('used_promos') || "[]");
-        if(used.includes(val)) return alert("Код уже использован!");
+        if(used.includes(val)) return alert("Промокод уже использован!");
 
         try {
             let res = await fetch(`${DB_URL}promos/${val}.json`);
             let p = await res.json();
             if(p && Date.now() < p.expire) {
+                // Сразу записываем в использованные
                 used.push(val);
                 localStorage.setItem('used_promos', JSON.stringify(used));
+
                 if(p.coins) {
                     coins += p.coins;
                     localStorage.setItem('it_coins', coins);
@@ -240,22 +259,25 @@
                 if(p.pack && p.pack !== 'none') {
                     currentCard = generateCard(getRarityByType(p.pack));
                     setupOverlay(p.pack);
-                } else { alert("Успешно!"); }
-            } else alert("Неверный код!");
-        } catch(e) { alert("Ошибка!"); }
+                } else { alert("Промокод активирован!"); }
+            } else alert("Неверный код или истек срок!");
+        } catch(e) { alert("Ошибка подключения!"); }
     }
 
     function renderStarter() {
         let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
         if(col.length === 0) {
-            document.getElementById('starter-section').innerHTML = `<button class="starter-btn" onclick="startFreePack()">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР (8 КАРТ)</button>`;
+            document.getElementById('starter-section').innerHTML = `<button class="starter-btn" onclick="startFreePack()">ПОЛУЧИТЬ 8 СТАРТОВЫХ КАРТ</button>`;
+        } else {
+            document.getElementById('starter-section').innerHTML = "";
         }
     }
 
     function startFreePack() {
         let set = []; for(let i=0; i<8; i++) set.push(generateCard('обычный'));
         localStorage.setItem('my_collection', JSON.stringify(set));
-        location.reload();
+        renderStarter();
+        alert("Набор получен!");
     }
 </script>
 </body>
