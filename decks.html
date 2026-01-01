@@ -15,23 +15,25 @@
         .slot { 
             aspect-ratio: 2/3; border: 2px dashed #444; border-radius: 8px; 
             display: flex; align-items: center; justify-content: center; font-size: 10px; color: #555;
-            transition: 0.2s; position: relative;
+            transition: 0.2s; position: relative; overflow: hidden;
         }
         .slot.filled { background: #002b2e; color: white; border-style: solid; }
+        .slot.highlight { border-color: #00fbff; background: rgba(0, 251, 255, 0.1); }
 
         .collection-grid { 
             display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
-            gap: 10px; width: 95%; max-width: 600px; padding: 20px;
+            gap: 10px; width: 95%; max-width: 600px; padding: 20px; padding-bottom: 100px;
         }
         .card { 
             background: #1a1a1a; border: 2px solid #333; border-radius: 8px; 
             padding: 8px; text-align: center; cursor: grab; position: relative;
             touch-action: none; z-index: 10;
         }
-        .card.dragging { opacity: 0.5; cursor: grabbing; z-index: 1000; }
+        .card.dragging { opacity: 0.8; cursor: grabbing; z-index: 1000; pointer-events: none; transform: scale(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .card.in-deck { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
         
         .rat { position: absolute; top: 2px; left: 4px; font-weight: bold; font-size: 12px; }
+        .class-tag { font-size: 8px; color: #aaa; text-transform: uppercase; margin-top: 2px; }
         .btn-back { margin-top: 15px; padding: 10px 20px; background: #333; color: white; border: none; border-radius: 8px; }
     </style>
 </head>
@@ -47,6 +49,9 @@
     <script>
         let collection = JSON.parse(localStorage.getItem('my_collection') || "[]");
         let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
+        // Гарантируем, что в массиве 8 элементов (пустых или с картами)
+        if (activeDeck.length === 0) activeDeck = new Array(8).fill(null);
+        while (activeDeck.length < 8) activeDeck.push(null);
 
         function getRarityColor(rarity) {
             if(rarity === 'мифический') return "#ff0000";
@@ -58,16 +63,23 @@
         function render() {
             const slotsContainer = document.getElementById('deck-slots');
             slotsContainer.innerHTML = "";
+            
             for (let i = 0; i < 8; i++) {
                 const card = activeDeck[i];
                 const slot = document.createElement('div');
                 slot.className = `slot ${card ? 'filled' : ''}`;
+                slot.dataset.slotIndex = i; // Для определения цели дропа
                 
                 if (card) {
                     let color = getRarityColor(card.rarity);
                     slot.style.borderColor = color;
                     slot.style.boxShadow = `inset 0 0 10px ${color}44`;
-                    slot.innerHTML = `<div style="text-align:center"><b style="color:gold">${card.rating}</b><br><small>${card.name}</small></div>`;
+                    slot.innerHTML = `
+                        <div style="text-align:center">
+                            <b style="color:gold">${card.rating}</b><br>
+                            <small>${card.name}</small><br>
+                            <div class="class-tag" style="color:white; font-size:7px">${card.class || ''}</div>
+                        </div>`;
                     slot.onclick = () => removeCard(i);
                 } else {
                     slot.innerText = "ПУСТО";
@@ -80,7 +92,7 @@
             const grid = document.getElementById('collection-grid');
             grid.innerHTML = "";
             collection.forEach(card => {
-                const isInDeck = activeDeck.some(c => c.id === card.id);
+                const isInDeck = activeDeck.some(c => c && c.id === card.id);
                 const cardEl = document.createElement('div');
                 cardEl.className = `card ${isInDeck ? 'in-deck' : ''}`;
                 
@@ -92,6 +104,7 @@
                     <div class="rat" style="color:${card.rarity==='мифический'?'#ff4444':'gold'}">${card.rating}</div>
                     <div style="font-size:24px;">👤</div>
                     <div style="font-size:11px; font-weight:bold;">${card.name}</div>
+                    <div class="class-tag">${card.class || 'БОЕЦ'}</div>
                     <div style="font-size:9px; color:${color}">${card.rarity}</div>
                 `;
                 
@@ -101,31 +114,49 @@
         }
 
         function addDragListeners(el, cardData) {
+            let startX, startY;
+
             el.addEventListener('touchstart', (e) => {
                 const touch = e.touches[0];
                 const rect = el.getBoundingClientRect();
+                
+                // Запоминаем начальную позицию для визуального эффекта
                 el.classList.add('dragging');
                 el.style.position = 'fixed';
                 el.style.width = rect.width + 'px';
+                el.style.pointerEvents = 'none'; // КРИТИЧНО: чтобы elementFromPoint видел слот под картой
+                
                 moveAt(touch.clientX, touch.clientY);
             });
 
             el.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Запрет скролла при перетаскивании
                 moveAt(e.touches[0].clientX, e.touches[0].clientY);
+                
+                // Подсветка слота при наведении
+                const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+                const slot = target ? target.closest('.slot') : null;
+                
+                document.querySelectorAll('.slot').forEach(s => s.classList.remove('highlight'));
+                if (slot) slot.classList.add('highlight');
             });
 
             el.addEventListener('touchend', (e) => {
                 el.classList.remove('dragging');
                 el.style.position = 'static';
                 el.style.width = 'auto';
+                el.style.pointerEvents = 'auto';
+                
                 const touch = e.changedTouches[0];
                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
                 const slot = target ? target.closest('.slot') : null;
 
-                if (slot && activeDeck.length < 8) {
-                    activeDeck.push(cardData);
+                if (slot) {
+                    const idx = slot.dataset.slotIndex;
+                    activeDeck[idx] = cardData; // Ставим на конкретное место (заменяем)
                     localStorage.setItem('active_deck', JSON.stringify(activeDeck));
                 }
+                
                 render();
             });
 
@@ -136,7 +167,7 @@
         }
 
         function removeCard(index) {
-            activeDeck.splice(index, 1);
+            activeDeck[index] = null; // Делаем слот пустым вместо удаления из массива
             localStorage.setItem('active_deck', JSON.stringify(activeDeck));
             render();
         }
