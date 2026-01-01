@@ -9,7 +9,7 @@
         .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
         #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; height: 100vh; padding-bottom:150px; }
         
-        .pack-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; perspective: 1000px; }
+        .pack-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; perspective: 1000px; margin-top: 20px; }
         .pack-card { width: 120px; height: 170px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
         .pack-card.flipped { transform: rotateY(180deg); }
         .pack-front, .pack-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
@@ -17,27 +17,27 @@
         
         .info-btn { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 1px solid #444; z-index: 10; }
 
-        /* Свечение паков в магазине */
-        .pack-card.common .pack-front { border-color: #888; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .pack-card.epic .pack-front { border-color: #9C27B0; box-shadow: 0 0 15px rgba(156,39,176,0.3); color: #e1bee7; }
-        .pack-card.legend .pack-front { border-color: gold; box-shadow: 0 0 25px rgba(255,215,0,0.4); color: gold; }
+        /* Цвета паков */
+        .pack-card.common .pack-front, .pack-opening.common { border-color: #888; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .pack-card.epic .pack-front, .pack-opening.epic { border-color: #9C27B0; box-shadow: 0 0 15px rgba(156,39,176,0.3); color: #e1bee7; }
+        .pack-card.legend .pack-front, .pack-opening.legend { border-color: gold; box-shadow: 0 0 25px rgba(255,215,0,0.4); color: gold; }
         
         #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.95); flex-direction: column; }
         .flipper { position: relative; width: 240px; height: 340px; transform-style: preserve-3d; transition: transform 0.6s; }
-        .pack-opening, .card-result { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pack-opening, .card-result { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
         .card-result { transform: rotateY(180deg); background: #222; }
 
-        /* ЭФФЕКТ ПУЛЬСАЦИИ ПРИ ОТКРЫТИИ */
+        /* ЭФФЕКТ ПУЛЬСАЦИИ СВЕЧЕНИЯ */
         .shaking { animation: shake 0.1s infinite, glow-pulse 0.4s infinite alternate; }
         @keyframes shake { 0%{transform:translate(2px,1px)} 50%{transform:translate(-2px,-1px)} 100%{transform:translate(0)} }
         
         @keyframes glow-pulse {
-            from { box-shadow: 0 0 20px var(--glow-color); border-color: var(--glow-color); }
-            to { box-shadow: 0 0 100px var(--glow-color); border-color: white; }
+            from { box-shadow: 0 0 20px var(--glow-color); }
+            to { box-shadow: 0 0 110px var(--glow-color); }
         }
 
         .promo-box { margin-top: 30px; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; width: 260px; text-align: center; }
-        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 80%; text-align: center; }
+        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 80%; text-align: center; text-transform: uppercase; }
         .promo-box button { background: #00fbff; color: black; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; width: 88%; }
         .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; display: none; cursor: pointer; }
     </style>
@@ -46,11 +46,13 @@
 
 <div id="main-content">
     <div class="header">
-        <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:10px;">НАЗАД</button>
+        <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">НАЗАД</button>
         <div style="color:gold; font-size: 24px; font-weight: bold;">💰 <span id="coins-val">0</span></div>
     </div>
     
-    <h1 style="text-align:center; color:#00fbff;">МАГАЗИН</h1>
+    <h1 style="text-align:center; color:#00fbff; margin-bottom: 5px;">МАГАЗИН</h1>
+    
+    <div id="starter-section"></div>
     
     <div class="pack-container">
         <div class="pack-card common" id="p-common">
@@ -60,6 +62,7 @@
             </div>
             <div class="pack-back" onclick="toggleInfo('p-common')"><b>ШАНСЫ:</b><br>Обыч: 85%<br>Ред: 14%<br>Эпик: 1%</div>
         </div>
+
         <div class="pack-card epic" id="p-epic">
             <div class="pack-front" onclick="buyPack('epic', 300)">
                 <div class="info-btn" onclick="toggleInfo('p-epic')">i</div>
@@ -67,10 +70,11 @@
             </div>
             <div class="pack-back" onclick="toggleInfo('p-epic')"><b>ШАНСЫ:</b><br>Ред: 70%<br>Эпик: 28%<br>Миф: 2%</div>
         </div>
+
         <div class="pack-card legend" id="p-legend">
             <div class="pack-front" onclick="buyPack('legend', 500)">
                 <div class="info-btn" onclick="toggleInfo('p-legend')">i</div>
-                👑<b>ЛЕГЕНДА</b><p>500 C</p>
+                👑<b>КОРОЛЕВСКИЙ</b><p>500 C</p>
             </div>
             <div class="pack-back" onclick="toggleInfo('p-legend')"><b>ШАНСЫ:</b><br>Ред: 20%<br>Эпик: 70%<br>Миф: 10%</div>
         </div>
@@ -120,10 +124,10 @@
     let isOpening = false;
 
     window.onload = () => {
+        renderStarter();
         let pending = localStorage.getItem('pending_pack');
         if(pending) {
             localStorage.removeItem('pending_pack');
-            // Если подарок, даем гарантированный эпик или мифик
             let r = pending === 'legend' ? 'мифический' : (pending === 'epic' ? 'эпический' : 'редкий');
             currentCard = generateCard(r);
             setupOverlay(pending);
@@ -156,16 +160,19 @@
     function setupOverlay(type) {
         isOpening = false;
         document.getElementById('flipper').style.transform = "rotateY(0deg)";
+        
+        // ПАК СОХРАНЯЕТ СВОЙ ЦВЕТ И ИКОНКУ
+        let visual = document.getElementById('pack-visual');
+        visual.className = "pack-opening " + type; // Присваиваем класс common/epic/legend
         document.getElementById('pack-icon').innerText = type === 'legend' ? "👑" : (type === 'epic' ? "💎" : "📦");
         
-        // КЛЮЧЕВАЯ ЛОГИКА СВЕЧЕНИЯ
-        let glowColor = "#ffffff"; // По умолчанию белый
-        if (currentCard.rarity === 'мифический') glowColor = "#ff0000"; // КРАСНЫЙ ДЛЯ МИФИКА
-        else if (currentCard.rarity === 'эпический') glowColor = "#bf00ff"; // ФИОЛЕТ ДЛЯ ЭПИКА
-        else if (currentCard.rarity === 'редкий') glowColor = "#00fbff"; // ГОЛУБОЙ ДЛЯ РЕДКОГО
+        // А ВОТ СВЕЧЕНИЕ ЗАВИСИТ ОТ РЕДКОСТИ ВНУТРИ
+        let glowColor = "#ffffff"; 
+        if (currentCard.rarity === 'мифический') glowColor = "#ff0000"; // КРАСНЫЙ ГЛОУ
+        else if (currentCard.rarity === 'эпический') glowColor = "#bf00ff"; // ФИОЛЕТ ГЛОУ
+        else if (currentCard.rarity === 'редкий') glowColor = "#00fbff"; 
 
-        document.getElementById('pack-visual').style.setProperty('--glow-color', glowColor);
-        document.getElementById('pack-visual').style.borderColor = glowColor;
+        visual.style.setProperty('--glow-color', glowColor);
         document.getElementById('card-result').style.borderColor = glowColor;
         
         document.getElementById('opening-overlay').style.display = 'flex';
@@ -186,7 +193,6 @@
             document.getElementById('c-rat').innerText = currentCard.rating;
             document.getElementById('c-rarity').innerText = currentCard.rarity;
             
-            // Цвет текста редкости
             let rColor = "#fff";
             if(currentCard.rarity === 'мифический') rColor = "#ff0000";
             if(currentCard.rarity === 'эпический') rColor = "#bf00ff";
@@ -201,7 +207,6 @@
         }, 1200);
     }
 
-    // Промокоды
     async function activatePromo() {
         const val = document.getElementById('promo-input').value.trim().toUpperCase();
         if(!val) return;
@@ -215,17 +220,21 @@
                     document.getElementById('coins-val').innerText = coins;
                 }
                 if(p.pack && p.pack !== 'none') {
-                    currentCard = generateCard(p.pack === 'legend' ? 'мифический' : (p.pack === 'epic' ? 'эпический' : 'редкий'));
+                    currentCard = generateCard(p.pack === 'legend' ? 'мифический' : 'эпический');
                     setupOverlay(p.pack);
-                }
-                alert("Промокод активирован!");
+                } else { alert("Монеты получены!"); }
             } else alert("Неверный код");
-        } catch(e) { alert("Ошибка!"); }
+        } catch(e) { alert("Ошибка сети"); }
     }
 
     function renderStarter() {
         let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
-        if(col.length === 0) document.getElementById('starter-section').innerHTML = `<button onclick="startFreePack()" style="width:280px; padding:12px; border:2px dashed #00fbff; background:none; color:#00fbff; cursor:pointer; border-radius:10px; font-weight:bold;">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР</button>`;
+        let section = document.getElementById('starter-section');
+        if(col.length === 0) {
+            section.innerHTML = `<button onclick="startFreePack()" style="width:280px; padding:12px; border:2px dashed #00fbff; background:none; color:#00fbff; cursor:pointer; border-radius:10px; font-weight:bold;">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР (8 КАРТ)</button>`;
+        } else {
+            section.innerHTML = "";
+        }
     }
 
     function startFreePack() {
@@ -233,7 +242,6 @@
         localStorage.setItem('my_collection', JSON.stringify(set));
         location.reload();
     }
-    renderStarter();
 </script>
 </body>
 </html>
