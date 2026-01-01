@@ -2,32 +2,72 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Профиль игрока</title>
     <style>
-        body { background: #050505; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .card { background: #111; padding: 30px; border-radius: 20px; border: 1px solid #333; width: 300px; text-align: center; }
-        .id-tag { color: #888; cursor: pointer; font-size: 14px; margin-bottom: 20px; display: block; }
-        .id-tag:hover { color: #00fbff; }
-        .stat-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #222; padding-bottom: 5px; }
-        .back-btn { margin-top: 20px; padding: 10px 20px; background: #444; border: none; color: white; border-radius: 10px; cursor: pointer; }
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 15px; margin: 0; }
+        
+        .card { 
+            background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; 
+            width: 100%; max-width: 340px; text-align: center; box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        h1 { margin: 10px 0 5px 0; font-size: 24px; color: #00fbff; }
+        .id-tag { color: #888; cursor: pointer; font-size: 12px; margin-bottom: 20px; display: block; background: #1a1a1a; padding: 5px; border-radius: 5px; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .stat-box { background: #1a1a1a; padding: 10px; border-radius: 12px; border: 1px solid #222; }
+        .stat-box span { display: block; font-size: 10px; color: #888; text-transform: uppercase; }
+        .stat-box b { font-size: 18px; }
+
+        /* Блок колоды */
+        .deck-section { width: 100%; max-width: 360px; margin-top: 25px; }
+        .deck-title { font-size: 14px; color: #666; text-transform: uppercase; margin-bottom: 10px; text-align: center; letter-spacing: 1px; }
+        
+        .deck-grid { 
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; 
+            background: #111; padding: 12px; border-radius: 15px; border: 1px solid #222;
+        }
+        .mini-card { 
+            aspect-ratio: 2/3; background: #0a0a0a; border: 1px solid #333; border-radius: 6px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; font-size: 8px; text-align: center;
+        }
+        .mini-card b { font-size: 10px; color: gold; }
+        .mini-card .rarity-line { position: absolute; bottom: 0; width: 100%; height: 3px; border-radius: 0 0 6px 6px; }
+
+        .back-btn { margin-top: 25px; padding: 12px 30px; background: #333; border: none; color: white; border-radius: 10px; font-weight: bold; width: 100%; max-width: 340px; }
     </style>
 </head>
 <body>
+
     <div class="card">
         <h1 id="p-name">Загрузка...</h1>
         <span class="id-tag" id="p-id" onclick="copyId()">ID: --- (нажми, чтобы скопировать)</span>
         
-        <div class="stat-row"><span>Победы:</span><b id="p-wins" style="color: #4CAF50;">0</b></div>
-        <div class="stat-row"><span>Поражения:</span><b id="p-losses" style="color: #f44336;">0</b></div>
-        <div class="stat-row"><span>Ничьи:</span><b id="p-draws">0</b></div>
-        <div class="stat-row"><span>Карточек:</span><b id="p-cards">0</b></div>
+        <div class="stats-grid">
+            <div class="stat-box"><span>Победы</span><b id="p-wins" style="color: #4CAF50;">0</b></div>
+            <div class="stat-box"><span>Поражения</span><b id="p-losses" style="color: #f44336;">0</b></div>
+            <div class="stat-box"><span>Ничьи</span><b id="p-draws">0</b></div>
+            <div class="stat-box"><span>Всего карт</span><b id="p-cards">0</b></div>
+        </div>
     </div>
-    <button class="back-btn" onclick="window.location.href='index.html'">НАЗАД</button>
+
+    <div class="deck-section">
+        <div class="deck-title">Текущая колода</div>
+        <div class="deck-grid" id="profile-deck">
+            </div>
+    </div>
+
+    <button class="back-btn" onclick="window.location.href='index.html'">НАЗАД В МЕНЮ</button>
 
     <script>
         let profile = JSON.parse(localStorage.getItem('user_profile') || "{}");
         let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
+        let activeDeck = JSON.parse(localStorage.getItem('active_deck') || "[]");
 
+        // Заполнение данных профиля
         document.getElementById('p-name').innerText = profile.name || "Игрок";
         document.getElementById('p-id').innerText = "ID: " + (profile.id || "---");
         document.getElementById('p-wins').innerText = profile.wins || 0;
@@ -36,9 +76,45 @@
         document.getElementById('p-cards').innerText = col.length;
 
         function copyId() {
+            if(!profile.id) return;
             navigator.clipboard.writeText(profile.id);
-            alert("ID скопирован: " + profile.id);
+            alert("ID скопирован!");
         }
+
+        // Функция получения цвета
+        function getRarityColor(rarity) {
+            if(rarity === 'мифический') return "#ff0000";
+            if(rarity === 'эпический') return "#e040fb";
+            if(rarity === 'редкий') return "#2196F3";
+            return "#666";
+        }
+
+        // Рендер колоды в профиле
+        function renderProfileDeck() {
+            const container = document.getElementById('profile-deck');
+            container.innerHTML = "";
+            
+            for(let i = 0; i < 8; i++) {
+                const card = activeDeck[i];
+                const cardEl = document.createElement('div');
+                cardEl.className = 'mini-card';
+                
+                if(card) {
+                    let color = getRarityColor(card.rarity);
+                    cardEl.style.borderColor = color;
+                    cardEl.innerHTML = `
+                        <b>${card.rating}</b>
+                        <div style="color:white; overflow:hidden; width:100%; white-space:nowrap;">${card.name}</div>
+                        <div class="rarity-line" style="background:${color}"></div>
+                    `;
+                } else {
+                    cardEl.innerHTML = `<span style="color:#222">EMPTY</span>`;
+                }
+                container.appendChild(cardEl);
+            }
+        }
+
+        renderProfileDeck();
     </script>
 </body>
 </html>
