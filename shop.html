@@ -8,10 +8,6 @@
         body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
         .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
         #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; height: 100vh; padding-bottom:150px; }
-        .holiday-section { display: flex; gap: 15px; margin-bottom: 25px; }
-        .gift-box { width: 130px; padding: 10px; border-radius: 15px; text-align: center; cursor: pointer; border: 2px dashed #fff; }
-        .gift-blue { background: rgba(0, 251, 255, 0.1); border-color: #00fbff; }
-        .gift-gold { background: rgba(255, 215, 0, 0.1); border-color: gold; }
         
         .pack-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; perspective: 1000px; }
         .pack-card { width: 120px; height: 170px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
@@ -19,21 +15,30 @@
         .pack-front, .pack-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
         .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 10px; padding: 5px; text-align: center; }
         
-        /* Цвета и свечение паков */
+        .info-btn { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 1px solid #444; z-index: 10; }
+
+        /* Свечение паков в магазине */
         .pack-card.common .pack-front { border-color: #888; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
         .pack-card.epic .pack-front { border-color: #9C27B0; box-shadow: 0 0 15px rgba(156,39,176,0.3); color: #e1bee7; }
-        .pack-card.legend .pack-front { border-color: gold; box-shadow: 0 0 20px rgba(255,215,0,0.4); color: gold; }
-        
-        .promo-box { margin-top: 30px; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; width: 260px; text-align: center; box-shadow: 0 0 20px rgba(0,251,255,0.1); }
-        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 80%; text-align: center; text-transform: uppercase; font-weight: bold; }
-        .promo-box button { background: #00fbff; color: black; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; width: 88%; }
+        .pack-card.legend .pack-front { border-color: gold; box-shadow: 0 0 25px rgba(255,215,0,0.4); color: gold; }
         
         #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.95); flex-direction: column; }
         .flipper { position: relative; width: 240px; height: 340px; transform-style: preserve-3d; transition: transform 0.6s; }
         .pack-opening, .card-result { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .card-result { transform: rotateY(180deg); background: #222; }
-        .shaking { animation: shake 0.1s infinite; }
+
+        /* ЭФФЕКТ ПУЛЬСАЦИИ ПРИ ОТКРЫТИИ */
+        .shaking { animation: shake 0.1s infinite, glow-pulse 0.4s infinite alternate; }
         @keyframes shake { 0%{transform:translate(2px,1px)} 50%{transform:translate(-2px,-1px)} 100%{transform:translate(0)} }
+        
+        @keyframes glow-pulse {
+            from { box-shadow: 0 0 20px var(--glow-color); border-color: var(--glow-color); }
+            to { box-shadow: 0 0 100px var(--glow-color); border-color: white; }
+        }
+
+        .promo-box { margin-top: 30px; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; width: 260px; text-align: center; }
+        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 80%; text-align: center; }
+        .promo-box button { background: #00fbff; color: black; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; width: 88%; }
         .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; display: none; cursor: pointer; }
     </style>
 </head>
@@ -41,44 +46,46 @@
 
 <div id="main-content">
     <div class="header">
-        <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">НАЗАД</button>
+        <button onclick="window.location.href='index.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:10px;">НАЗАД</button>
         <div style="color:gold; font-size: 24px; font-weight: bold;">💰 <span id="coins-val">0</span></div>
     </div>
     
-    <h2 style="text-align:center; color:#00fbff; margin:0;">❄️ НОВЫЙ ГОД ❄️</h2>
-    <div class="holiday-section">
-        <div class="gift-box gift-blue" id="gift-pack-btn" onclick="claimNewYearPack()"><span>❄️</span><br><small>ПОДАРОК</small></div>
-        <div class="gift-box gift-gold" id="gift-coins-btn" onclick="claimNewYearCoins()"><span>🎁</span><br><small>+500 МОНЕТ</small></div>
-    </div>
-
-    <h1 style="text-align:center; margin:0;">МАГАЗИН</h1>
-    <div id="starter-section" style="margin: 15px 0;"></div>
+    <h1 style="text-align:center; color:#00fbff;">МАГАЗИН</h1>
     
     <div class="pack-container">
-        <div class="pack-card common" id="p-common" onclick="toggleInfo('p-common')">
-            <div class="pack-front" onclick="buyPack('common', 150)">📦<b>ОБЫЧНЫЙ</b><p>150 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Обыч: 85%<br>Ред: 14%<br>Эпик: 1%</div>
+        <div class="pack-card common" id="p-common">
+            <div class="pack-front" onclick="buyPack('common', 150)">
+                <div class="info-btn" onclick="toggleInfo('p-common')">i</div>
+                📦<b>ОБЫЧНЫЙ</b><p>150 C</p>
+            </div>
+            <div class="pack-back" onclick="toggleInfo('p-common')"><b>ШАНСЫ:</b><br>Обыч: 85%<br>Ред: 14%<br>Эпик: 1%</div>
         </div>
-        <div class="pack-card epic" id="p-epic" onclick="toggleInfo('p-epic')">
-            <div class="pack-front" onclick="buyPack('epic', 300)">💎<b>ЭПИЧЕСКИЙ</b><p>300 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Ред: 70%<br>Эпик: 28%<br>Миф: 2%</div>
+        <div class="pack-card epic" id="p-epic">
+            <div class="pack-front" onclick="buyPack('epic', 300)">
+                <div class="info-btn" onclick="toggleInfo('p-epic')">i</div>
+                💎<b>ЭПИЧЕСКИЙ</b><p>300 C</p>
+            </div>
+            <div class="pack-back" onclick="toggleInfo('p-epic')"><b>ШАНСЫ:</b><br>Ред: 70%<br>Эпик: 28%<br>Миф: 2%</div>
         </div>
-        <div class="pack-card legend" id="p-legend" onclick="toggleInfo('p-legend')">
-            <div class="pack-front" onclick="buyPack('legend', 500)">👑<b>ЛЕГЕНДА</b><p>500 C</p></div>
-            <div class="pack-back"><b>ШАНСЫ:</b><br>Ред: 20%<br>Эпик: 70%<br>Миф: 10%</div>
+        <div class="pack-card legend" id="p-legend">
+            <div class="pack-front" onclick="buyPack('legend', 500)">
+                <div class="info-btn" onclick="toggleInfo('p-legend')">i</div>
+                👑<b>ЛЕГЕНДА</b><p>500 C</p>
+            </div>
+            <div class="pack-back" onclick="toggleInfo('p-legend')"><b>ШАНСЫ:</b><br>Ред: 20%<br>Эпик: 70%<br>Миф: 10%</div>
         </div>
     </div>
 
     <div class="promo-box">
-        <input type="text" id="promo-input" placeholder="ВВЕДИ ПРОМОКОД">
-        <button id="promo-btn" onclick="activatePromo()">АКТИВИРОВАТЬ</button>
+        <input type="text" id="promo-input" placeholder="ПРОМОКОД">
+        <button onclick="activatePromo()">АКТИВИРОВАТЬ</button>
     </div>
 </div>
 
 <div id="opening-overlay">
     <div class="flipper" id="flipper" onclick="handlePackClick()">
         <div id="pack-visual" class="pack-opening">
-            <h2>НАЖМИ!</h2>
+            <h2 id="tap-hint">НАЖМИ!</h2>
             <div id="pack-icon" style="font-size: 80px;">📦</div>
         </div>
         <div id="card-result" class="card-result">
@@ -116,39 +123,11 @@
         let pending = localStorage.getItem('pending_pack');
         if(pending) {
             localStorage.removeItem('pending_pack');
-            let r = pending === 'legend' ? (Math.random() > 0.1 ? 'эпический' : 'мифический') : (pending === 'epic' ? (Math.random() > 0.3 ? 'редкий' : 'эпический') : 'обычный');
+            // Если подарок, даем гарантированный эпик или мифик
+            let r = pending === 'legend' ? 'мифический' : (pending === 'epic' ? 'эпический' : 'редкий');
             currentCard = generateCard(r);
             setupOverlay(pending);
         }
-    }
-
-    async function activatePromo() {
-        const val = document.getElementById('promo-input').value.trim().toUpperCase();
-        if(!val) return;
-        const used = JSON.parse(localStorage.getItem('used_promos') || "[]");
-        if(used.includes(val)) return alert("Код уже использован!");
-
-        document.getElementById('promo-btn').innerText = "СВЯЗЬ...";
-        try {
-            let res = await fetch(`${DB_URL}promos/${val}.json`);
-            let p = await res.json();
-            if(p && Date.now() < p.expire) {
-                if(p.coins > 0) {
-                    coins += p.coins;
-                    localStorage.setItem('it_coins', coins);
-                    document.getElementById('coins-val').innerText = coins;
-                }
-                if(p.pack !== 'none') {
-                    currentCard = generateCard(p.pack === 'legend' ? 'эпический' : (p.pack === 'epic' ? 'редкий' : null));
-                    setupOverlay(p.pack);
-                }
-                used.push(val);
-                localStorage.setItem('used_promos', JSON.stringify(used));
-                if(p.pack === 'none') alert("✅ Получено " + p.coins + " монет!");
-            } else alert("❌ Код неверный или истек");
-        } catch(e) { alert("Ошибка сети"); }
-        document.getElementById('promo-btn').innerText = "АКТИВИРОВАТЬ";
-        document.getElementById('promo-input').value = "";
     }
 
     function toggleInfo(id) { event.stopPropagation(); document.getElementById(id).classList.toggle('flipped'); }
@@ -165,7 +144,11 @@
         coins -= price;
         localStorage.setItem('it_coins', coins);
         document.getElementById('coins-val').innerText = coins;
-        let r = type === 'legend' ? (Math.random() > 0.1 ? 'эпический' : 'мифический') : (type === 'epic' ? (Math.random() > 0.3 ? 'редкий' : 'эпический') : 'обычный');
+        
+        let r = 'обычный';
+        if(type === 'legend') r = (Math.random() > 0.1 ? 'эпический' : 'мифический');
+        else if(type === 'epic') r = (Math.random() > 0.3 ? 'редкий' : 'эпический');
+        
         currentCard = generateCard(r);
         setupOverlay(type);
     }
@@ -175,26 +158,42 @@
         document.getElementById('flipper').style.transform = "rotateY(0deg)";
         document.getElementById('pack-icon').innerText = type === 'legend' ? "👑" : (type === 'epic' ? "💎" : "📦");
         
-        // Цвет рамки оверлея в зависимости от типа пака
-        let color = type === 'legend' ? 'gold' : (type === 'epic' ? '#9C27B0' : '#00fbff');
-        document.getElementById('pack-visual').style.borderColor = color;
-        document.getElementById('card-result').style.borderColor = color;
+        // КЛЮЧЕВАЯ ЛОГИКА СВЕЧЕНИЯ
+        let glowColor = "#ffffff"; // По умолчанию белый
+        if (currentCard.rarity === 'мифический') glowColor = "#ff0000"; // КРАСНЫЙ ДЛЯ МИФИКА
+        else if (currentCard.rarity === 'эпический') glowColor = "#bf00ff"; // ФИОЛЕТ ДЛЯ ЭПИКА
+        else if (currentCard.rarity === 'редкий') glowColor = "#00fbff"; // ГОЛУБОЙ ДЛЯ РЕДКОГО
+
+        document.getElementById('pack-visual').style.setProperty('--glow-color', glowColor);
+        document.getElementById('pack-visual').style.borderColor = glowColor;
+        document.getElementById('card-result').style.borderColor = glowColor;
         
         document.getElementById('opening-overlay').style.display = 'flex';
         document.getElementById('claim-btn').style.display = 'none';
+        document.getElementById('tap-hint').style.display = 'block';
     }
 
     function handlePackClick() {
         if(isOpening || !currentCard) return;
         isOpening = true;
+        document.getElementById('tap-hint').style.display = 'none';
         document.getElementById('pack-visual').classList.add('shaking');
+        
         setTimeout(() => {
             document.getElementById('pack-visual').classList.remove('shaking');
             document.getElementById('c-name').innerText = currentCard.name;
             document.getElementById('c-class').innerText = currentCard.class.toUpperCase();
             document.getElementById('c-rat').innerText = currentCard.rating;
             document.getElementById('c-rarity').innerText = currentCard.rarity;
+            
+            // Цвет текста редкости
+            let rColor = "#fff";
+            if(currentCard.rarity === 'мифический') rColor = "#ff0000";
+            if(currentCard.rarity === 'эпический') rColor = "#bf00ff";
+            document.getElementById('c-rarity').style.color = rColor;
+
             document.getElementById('flipper').style.transform = "rotateY(180deg)";
+            
             let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
             col.push(currentCard);
             localStorage.setItem('my_collection', JSON.stringify(col));
@@ -202,25 +201,31 @@
         }, 1200);
     }
 
-    function claimNewYearPack() {
-        if(localStorage.getItem('gift_ny_pack')) return alert("Уже забрали!");
-        currentCard = generateCard('редкий');
-        localStorage.setItem('gift_ny_pack', 'true');
-        setupOverlay('ny');
-    }
-    
-    function claimNewYearCoins() {
-        if(localStorage.getItem('gift_ny_coins')) return alert("Уже забрали!");
-        coins += 500;
-        localStorage.setItem('it_coins', coins);
-        localStorage.setItem('gift_ny_coins', 'true');
-        document.getElementById('coins-val').innerText = coins;
-        alert("Зачислено 500 монет!");
+    // Промокоды
+    async function activatePromo() {
+        const val = document.getElementById('promo-input').value.trim().toUpperCase();
+        if(!val) return;
+        try {
+            let res = await fetch(`${DB_URL}promos/${val}.json`);
+            let p = await res.json();
+            if(p && Date.now() < p.expire) {
+                if(p.coins) {
+                    coins += p.coins;
+                    localStorage.setItem('it_coins', coins);
+                    document.getElementById('coins-val').innerText = coins;
+                }
+                if(p.pack && p.pack !== 'none') {
+                    currentCard = generateCard(p.pack === 'legend' ? 'мифический' : (p.pack === 'epic' ? 'эпический' : 'редкий'));
+                    setupOverlay(p.pack);
+                }
+                alert("Промокод активирован!");
+            } else alert("Неверный код");
+        } catch(e) { alert("Ошибка!"); }
     }
 
     function renderStarter() {
         let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
-        if(col.length === 0) document.getElementById('starter-section').innerHTML = `<button onclick="startFreePack()" style="width:280px; padding:12px; border:2px dashed #00fbff; background:none; color:#00fbff; cursor:pointer; border-radius:10px; font-weight:bold;">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР (8 КАРТ)</button>`;
+        if(col.length === 0) document.getElementById('starter-section').innerHTML = `<button onclick="startFreePack()" style="width:280px; padding:12px; border:2px dashed #00fbff; background:none; color:#00fbff; cursor:pointer; border-radius:10px; font-weight:bold;">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР</button>`;
     }
 
     function startFreePack() {
