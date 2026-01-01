@@ -36,13 +36,13 @@
         .menu-container { 
             display: flex; 
             flex-direction: column; 
-            gap: 15px; 
+            gap: 12px; 
             width: 280px; 
         }
         .menu-btn { 
-            padding: 18px; 
+            padding: 16px; 
             border-radius: 15px; 
-            font-size: 20px; 
+            font-size: 18px; 
             font-weight: bold; 
             color: white; 
             cursor: pointer; 
@@ -54,6 +54,7 @@
         }
         .menu-btn:active { transform: scale(0.95); }
         .play { background: linear-gradient(#4CAF50, #2E7D32); box-shadow: 0 4px 15px rgba(76,175,80,0.3); }
+        .profile { background: linear-gradient(#9C27B0, #7B1FA2); box-shadow: 0 4px 15px rgba(156,39,176,0.3); }
         .shop { background: linear-gradient(#ff9800, #ef6c00); box-shadow: 0 4px 15px rgba(255,152,0,0.3); }
         .decks { background: linear-gradient(#2196F3, #1565C0); box-shadow: 0 4px 15px rgba(33,150,243,0.3); }
         
@@ -61,7 +62,10 @@
         .naming-box { background:#111; padding:30px; border-radius:20px; border:2px solid #00fbff; text-align:center; }
         .naming-box input { padding:12px; border-radius:10px; border:none; width:200px; margin:15px 0; text-align:center; font-size:18px; background:#222; color:white; }
         
-        .hint { position: absolute; bottom: 20px; color: #333; font-size: 10px; text-transform: uppercase; }
+        /* Стили для новых окон админки */
+        .admin-modal { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; padding:20px; border:2px solid gold; border-radius:15px; z-index:20000; color:white; display:flex; flex-direction:column; gap:8px; width:280px; font-size:12px; }
+        .admin-modal input, .admin-modal select { padding:5px; background:#000; color:#fff; border:1px solid #333; }
+        .admin-modal button { background:gold; border:none; padding:10px; font-weight:bold; cursor:pointer; margin-top:5px; color: black; }
     </style>
 </head>
 <body>
@@ -72,6 +76,7 @@
     
     <div class="menu-container">
         <button onclick="checkDeck()" class="menu-btn play">В БОЙ!</button>
+        <button onclick="location.href='profile.html'" class="menu-btn profile">МОЙ ПРОФИЛЬ</button>
         <button onclick="location.href='shop.html'" class="menu-btn shop">МАГАЗИН</button>
         <button onclick="location.href='decks.html'" class="menu-btn decks">СОСТАВЫ</button>
     </div>
@@ -85,8 +90,6 @@
         </div>
     </div>
 
-    <div class="hint">F12 - Админ | F11 - Сброс</div>
-
     <script>
         const DB_URL = "https://clashofit-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
@@ -97,16 +100,39 @@
                 localStorage.setItem('active_deck', '[]');
             }
             document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
-            if (!localStorage.getItem('user_profile')) {
+            
+            let profile = localStorage.getItem('user_profile');
+            if (!profile) {
                 document.getElementById('naming-overlay').style.display = 'flex';
+            } else {
+                checkPersonalGifts(JSON.parse(profile).id);
             }
+        }
+
+        async function checkPersonalGifts(userId) {
+            try {
+                let res = await fetch(`${DB_URL}gifts/${userId}.json`);
+                let gift = await res.json();
+                if(gift) {
+                    let currentCoins = parseInt(localStorage.getItem('it_coins'));
+                    localStorage.setItem('it_coins', currentCoins + gift.coins);
+                    // Удаляем подарок из базы после получения
+                    await fetch(`${DB_URL}gifts/${userId}.json`, { method: 'DELETE' });
+                    alert(`🎁 Тебе пришел личный подарок: ${gift.coins} монет и ${gift.pack} пак! (Перейди в магазин)`);
+                    location.reload();
+                }
+            } catch(e) {}
         }
 
         function saveInitialProfile() {
             let nick = document.getElementById('nick-input').value.trim();
             if (nick.length < 2) return alert("Ник слишком короткий!");
-            localStorage.setItem('user_profile', JSON.stringify({name: nick, id: "ID-"+Math.floor(Math.random()*900000+100000)}));
+            localStorage.setItem('user_profile', JSON.stringify({
+                name: nick, 
+                id: "ID-" + Math.floor(Math.random() * 900000 + 100000)
+            }));
             document.getElementById('naming-overlay').style.display = 'none';
+            updateUI();
         }
 
         window.addEventListener('keydown', function(e) {
@@ -116,7 +142,15 @@
             }
             if (e.key === 'F11') {
                 e.preventDefault();
-                if(confirm("Сбросить всё прогресс?")) { localStorage.clear(); location.reload(); }
+                if(confirm("Сбросить весь прогресс?")) { 
+                    localStorage.clear(); 
+                    location.reload(); 
+                }
+            }
+            // НОВАЯ КНОПКА F10
+            if (e.key === 'F10') {
+                e.preventDefault();
+                showPersonalGiftPanel();
             }
         });
 
@@ -124,15 +158,42 @@
             if (document.getElementById('admin-box')) return;
             let box = document.createElement('div');
             box.id = 'admin-box';
-            box.style = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; padding:20px; border:2px solid gold; border-radius:15px; z-index:20000; color:white; display:flex; flex-direction:column; gap:8px; width:280px; font-size:12px;";
+            box.className = 'admin-modal';
             box.innerHTML = `
-                <h3 style="color:gold; margin:0; text-align:center;">ОБЛАЧНЫЙ АДМИН</h3>
-                Название: <input type="text" id="adm-n" placeholder="NEWCODE" style="padding:5px; background:#000; color:#fff; border:1px solid #333;">
-                Дней: <input type="number" id="adm-d" value="7" style="padding:5px; background:#000; color:#fff; border:1px solid #333;">
-                Монет: <input type="number" id="adm-c" value="0" style="padding:5px; background:#000; color:#fff; border:1px solid #333;">
-                Пак: <select id="adm-p" style="padding:5px; background:#000; color:#fff;"><option value="none">Нет</option><option value="common">Обычный</option><option value="epic">Эпик</option><option value="legend">Легенда</option></select>
-                <button onclick="genAdminCode()" style="background:gold; border:none; padding:10px; font-weight:bold; cursor:pointer; margin-top:5px;">ОТПРАВИТЬ В ОБЛАКО</button>
-                <button onclick="this.parentElement.remove()" style="background:none; color:grey; border:none; cursor:pointer;">Закрыть</button>
+                <h3 style="color:gold; margin:0; text-align:center;">ОБЛАЧНЫЙ АДМИН (КОДЫ)</h3>
+                Название: <input type="text" id="adm-n" placeholder="NEWCODE">
+                Дней: <input type="number" id="adm-d" value="7">
+                Монет: <input type="number" id="adm-c" value="0">
+                Пак: <select id="adm-p">
+                    <option value="none">Нет</option>
+                    <option value="common">Обычный</option>
+                    <option value="epic">Эпик</option>
+                    <option value="legend">Легенда</option>
+                </select>
+                <button onclick="genAdminCode()">ОТПРАВИТЬ В ОБЛАКО</button>
+                <button onclick="this.parentElement.remove()" style="background:none; color:grey;">Закрыть</button>
+            `;
+            document.body.appendChild(box);
+        }
+
+        function showPersonalGiftPanel() {
+            if (document.getElementById('gift-box')) return;
+            let box = document.createElement('div');
+            box.id = 'gift-box';
+            box.className = 'admin-modal';
+            box.style.borderColor = "#00fbff";
+            box.innerHTML = `
+                <h3 style="color:#00fbff; margin:0; text-align:center;">ЛИЧНАЯ ВЫДАЧА</h3>
+                ID Пользователя: <input type="text" id="gift-id" placeholder="ID-123456">
+                Монет: <input type="number" id="gift-c" value="1000">
+                Пак: <select id="gift-p">
+                    <option value="none">Нет</option>
+                    <option value="common">Обычный</option>
+                    <option value="epic">Эпик</option>
+                    <option value="legend">Легенда</option>
+                </select>
+                <button onclick="sendPersonalGift()" style="background:#00fbff;">ОТПРАВИТЬ ИГРОКУ</button>
+                <button onclick="this.parentElement.remove()" style="background:none; color:grey;">Закрыть</button>
             `;
             document.body.appendChild(box);
         }
@@ -150,9 +211,25 @@
                     method: 'PUT',
                     body: JSON.stringify({ coins: parseInt(c), pack: p, expire: exp })
                 });
-                alert("✅ КОД " + n + " ТЕПЕРЬ РАБОТАЕТ У ВСЕХ!");
+                alert("✅ КОД " + n + " ТЕПЕРЬ РАБОТАЕТ!");
                 document.getElementById('admin-box').remove();
-            } catch (e) { alert("Ошибка сети!"); }
+            } catch (e) { alert("Ошибка!"); }
+        }
+
+        async function sendPersonalGift() {
+            let id = document.getElementById('gift-id').value.trim();
+            let c = document.getElementById('gift-c').value;
+            let p = document.getElementById('gift-p').value;
+            if(!id) return alert("Введите ID!");
+
+            try {
+                await fetch(`${DB_URL}gifts/${id}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ coins: parseInt(c), pack: p })
+                });
+                alert("✅ Подарок отправлен пользователю " + id);
+                document.getElementById('gift-box').remove();
+            } catch (e) { alert("Ошибка!"); }
         }
 
         function checkDeck() {
@@ -160,6 +237,7 @@
             if (deck.length < 8) alert("В составе должно быть 8 карт!");
             else location.href = 'game.html';
         }
+        
         updateUI();
     </script>
 </body>
