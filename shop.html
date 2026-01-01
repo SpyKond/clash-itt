@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Clash Of IT - Магазин</title>
     <style>
-        /* [Твои существующие стили без изменений] */
         body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
         .header { width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
-        #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; transition: 0.5s; overflow-y: auto; height: 100vh; padding-bottom:100px; }
-        .holiday-section { display: flex; gap: 15px; margin-bottom: 25px; width: 100%; justify-content: center; }
-        .gift-box { width: 140px; padding: 10px; border-radius: 15px; text-align: center; cursor: pointer; border: 2px dashed #fff; transition: 0.3s; }
+        #main-content { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; height: 100vh; padding-bottom:150px; }
+        .holiday-section { display: flex; gap: 15px; margin-bottom: 25px; }
+        .gift-box { width: 130px; padding: 10px; border-radius: 15px; text-align: center; cursor: pointer; border: 2px dashed #fff; }
         .gift-blue { background: rgba(0, 251, 255, 0.1); border-color: #00fbff; }
         .gift-gold { background: rgba(255, 215, 0, 0.1); border-color: gold; }
         .pack-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; perspective: 1000px; }
@@ -18,20 +17,17 @@
         .pack-card.flipped { transform: rotateY(180deg); }
         .pack-front, .pack-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
         .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 10px; padding: 5px; text-align: center; }
-        .info-btn { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 10; }
+        .promo-box { margin-top: 30px; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; width: 260px; text-align: center; box-shadow: 0 0 20px rgba(0,251,255,0.1); }
+        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 80%; text-align: center; text-transform: uppercase; font-weight: bold; }
+        .promo-box button { background: #00fbff; color: black; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; width: 88%; }
         
-        /* Стили для промокодов */
-        .promo-box { margin-top: 30px; background: #111; padding: 15px; border-radius: 20px; border: 1px solid #333; width: 260px; text-align: center; }
-        .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 8px; border-radius: 8px; width: 80%; text-align: center; text-transform: uppercase; }
-        .promo-box button { background: #00fbff; color: black; border: none; padding: 8px 20px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; }
-
-        #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.9); flex-direction: column; }
+        #opening-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; background: rgba(0,0,0,0.95); flex-direction: column; }
         .flipper { position: relative; width: 240px; height: 340px; transform-style: preserve-3d; transition: transform 0.6s; }
         .pack-opening, .card-result { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .card-result { transform: rotateY(180deg); background: #222; }
         .shaking { animation: shake 0.1s infinite; }
         @keyframes shake { 0%{transform:translate(2px,1px)} 50%{transform:translate(-2px,-1px)} 100%{transform:translate(0)} }
-        .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; display: none; }
+        .btn-claim { background: #2196F3; color: white; padding: 15px 40px; border: none; border-radius: 12px; margin-top: 30px; font-weight: bold; display: none; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -43,60 +39,52 @@
     </div>
     
     <h2 style="text-align:center; color:#00fbff; margin:0;">❄️ НОВЫЙ ГОД ❄️</h2>
-    <div class="holiday-section" id="holiday-section">
-        <div class="gift-box gift-blue" id="gift-pack-btn" onclick="claimNewYearPack()">
-            <span>❄️</span><br><small>ПОДАРОК</small>
-        </div>
-        <div class="gift-box gift-gold" id="gift-coins-btn" onclick="claimNewYearCoins()">
-            <span>🎁</span><br><small>+500 МОНЕТ</small>
-        </div>
+    <div class="holiday-section">
+        <div class="gift-box gift-blue" id="gift-pack-btn" onclick="claimNewYearPack()"><span>❄️</span><br><small>ПОДАРОК</small></div>
+        <div class="gift-box gift-gold" id="gift-coins-btn" onclick="claimNewYearCoins()"><span>🎁</span><br><small>+500 МОНЕТ</small></div>
     </div>
 
-    <h1 style="text-align:center; margin-top:0;">МАГАЗИН</h1>
-    <div id="starter-section" style="width: 100%; display: flex; justify-content: center; margin-bottom: 20px;"></div>
+    <h1 style="text-align:center; margin:0;">МАГАЗИН</h1>
+    <div id="starter-section" style="margin: 15px 0;"></div>
     
     <div class="pack-container">
-        <div class="pack-card" id="p-common">
-            <div class="info-btn" onclick="toggleInfo('p-common')">i</div>
+        <div class="pack-card" id="p-common" onclick="toggleInfo('p-common')">
             <div class="pack-front" onclick="buyPack('common', 150)">📦<b>ОБЫЧНЫЙ</b><p>150 C</p></div>
             <div class="pack-back"><b>ШАНСЫ:</b><br>Обыч: 85%<br>Ред: 14%<br>Эпик: 1%</div>
         </div>
-        <div class="pack-card" id="p-epic">
-            <div class="info-btn" onclick="toggleInfo('p-epic')">i</div>
+        <div class="pack-card" id="p-epic" onclick="toggleInfo('p-epic')">
             <div class="pack-front" onclick="buyPack('epic', 300)">💎<b>ЭПИЧЕСКИЙ</b><p>300 C</p></div>
             <div class="pack-back"><b>ШАНСЫ:</b><br>Ред: 70%<br>Эпик: 28%<br>Миф: 2%</div>
         </div>
-        <div class="pack-card" id="p-legend">
-            <div class="info-btn" onclick="toggleInfo('p-legend')">i</div>
+        <div class="pack-card" id="p-legend" onclick="toggleInfo('p-legend')">
             <div class="pack-front" onclick="buyPack('legend', 500)">👑<b>ЛЕГЕНДА</b><p>500 C</p></div>
             <div class="pack-back"><b>ШАНСЫ:</b><br>Ред: 20%<br>Эпик: 70%<br>Миф: 10%</div>
         </div>
     </div>
 
     <div class="promo-box">
-        <input type="text" id="promo-input" placeholder="ПРОМОКОД">
-        <button onclick="activatePromo()">АКТИВИРОВАТЬ</button>
+        <input type="text" id="promo-input" placeholder="ВВЕДИ ПРОМОКОД">
+        <button id="promo-btn" onclick="activatePromo()">АКТИВИРОВАТЬ</button>
     </div>
 </div>
 
 <div id="opening-overlay">
     <div class="flipper" id="flipper" onclick="handlePackClick()">
         <div id="pack-visual" class="pack-opening">
-            <h2 id="pack-label">НАЖМИ!</h2>
+            <h2>НАЖМИ!</h2>
             <div id="pack-icon" style="font-size: 80px;">📦</div>
         </div>
         <div id="card-result" class="card-result">
             <div id="c-rat" style="position:absolute; top:20px; left:20px; font-size:32px; font-weight:bold;"></div>
             <h2 id="c-name">ИМЯ</h2>
             <p id="c-class" style="color:#00fbff; font-weight:bold;"></p>
-            <p id="c-rarity" style="margin-top:15px; font-size:14px;"></p>
+            <p id="c-rarity" style="margin-top:15px; font-size:14px; text-transform:uppercase;"></p>
         </div>
     </div>
-    <button id="claim-btn" class="btn-claim" onclick="window.location.reload()">ЗАБРАТЬ</button>
+    <button id="claim-btn" class="btn-claim" onclick="location.reload()">ЗАБРАТЬ В КОЛЛЕКЦИЮ</button>
 </div>
 
 <script>
-    // Твой массив MY_CHARS (оставляем без изменений)
     const MY_CHARS = [
         {n:"Димаш", c:"ближник", r:"редкий"}, {n:"Бексултан", c:"летун", r:"редкий"},
         {n:"Мансур", c:"мини армия", r:"обычный"}, {n:"Бекболат", c:"танк", r:"эпический"},
@@ -111,50 +99,47 @@
         {n:"Бекнур", c:"мини армия", r:"эпический"}
     ];
 
+    const DB_URL = "https://clashofit-default-rtdb.asia-southeast1.firebasedatabase.app/";
     let coins = parseInt(localStorage.getItem('it_coins') || 500);
     document.getElementById('coins-val').innerText = coins;
     let currentCard = null;
     let isOpening = false;
 
-    // СИСТЕМА ПРОМОКОДОВ
-    function activatePromo() {
+    async function activatePromo() {
         const val = document.getElementById('promo-input').value.trim().toUpperCase();
+        if(!val) return;
         const used = JSON.parse(localStorage.getItem('used_promos') || "[]");
-        
-        // --- СЮДА ВСТАВЛЯТЬ СТРОЧКУ ИЗ АДМИНКИ ---
-        const promos = {
-            "START": { coins: 1000, pack: "common", expire: 1999999999999 },
-        };
-
         if(used.includes(val)) return alert("Код уже использован!");
-        let p = promos[val];
 
-        if(p) {
-            if(Date.now() > p.expire) return alert("Срок кода истек!");
-            
-            if(p.coins > 0) {
-                coins += p.coins;
-                localStorage.setItem('it_coins', coins);
-                document.getElementById('coins-val').innerText = coins;
-            }
-            if(p.pack !== 'none') {
-                currentCard = generateCard(p.pack === 'legend' ? 'эпический' : null);
-                setupOverlay(p.pack);
-            }
-            
-            used.push(val);
-            localStorage.setItem('used_promos', JSON.stringify(used));
-            if(p.pack === 'none') alert("Успешно! Получено монет: " + p.coins);
-        } else alert("Неверный код");
+        document.getElementById('promo-btn').innerText = "СВЯЗЬ...";
+        try {
+            let res = await fetch(`${DB_URL}promos/${val}.json`);
+            let p = await res.json();
+            if(p && Date.now() < p.expire) {
+                if(p.coins > 0) {
+                    coins += p.coins;
+                    localStorage.setItem('it_coins', coins);
+                    document.getElementById('coins-val').innerText = coins;
+                }
+                if(p.pack !== 'none') {
+                    currentCard = generateCard(p.pack === 'legend' ? 'эпический' : (p.pack === 'epic' ? 'редкий' : null));
+                    setupOverlay(p.pack);
+                }
+                used.push(val);
+                localStorage.setItem('used_promos', JSON.stringify(used));
+                if(p.pack === 'none') alert("✅ Получено " + p.coins + " монет!");
+            } else alert("❌ Код неверный или истек");
+        } catch(e) { alert("Ошибка сети"); }
+        document.getElementById('promo-btn').innerText = "АКТИВИРОВАТЬ";
+        document.getElementById('promo-input').value = "";
     }
 
-    // Твои функции покупки и генерации (оставляем без изменений)
     function toggleInfo(id) { event.stopPropagation(); document.getElementById(id).classList.toggle('flipped'); }
-    
+
     function generateCard(forcedRarity = null) {
         let randChar = MY_CHARS[Math.floor(Math.random() * MY_CHARS.length)];
         let rarity = forcedRarity || randChar.r;
-        let rating = rarity === 'мифический' ? 98 : (rarity === 'эпический' ? 92 : 80);
+        let rating = rarity === 'мифический' ? 98 : (rarity === 'эпический' ? 92 : (rarity === 'редкий' ? 84 : 70));
         return { name: randChar.n, class: randChar.c, rarity: rarity, rating: rating, id: Date.now() + Math.random() };
     }
 
@@ -163,21 +148,16 @@
         coins -= price;
         localStorage.setItem('it_coins', coins);
         document.getElementById('coins-val').innerText = coins;
-        
-        let r = 'обычный';
-        if(type === 'epic' && Math.random() > 0.5) r = 'эпический';
-        if(type === 'legend') r = Math.random() > 0.1 ? 'эпический' : 'мифический';
-        
+        let r = type === 'legend' ? (Math.random() > 0.1 ? 'эпический' : 'мифический') : (type === 'epic' ? (Math.random() > 0.3 ? 'редкий' : 'эпический') : 'обычный');
         currentCard = generateCard(r);
         setupOverlay(type);
     }
 
     function setupOverlay(type) {
         isOpening = false;
-        const overlay = document.getElementById('opening-overlay');
         document.getElementById('flipper').style.transform = "rotateY(0deg)";
         document.getElementById('pack-icon').innerText = type === 'legend' ? "👑" : (type === 'epic' ? "💎" : "📦");
-        overlay.style.display = 'flex';
+        document.getElementById('opening-overlay').style.display = 'flex';
         document.getElementById('claim-btn').style.display = 'none';
     }
 
@@ -188,11 +168,10 @@
         setTimeout(() => {
             document.getElementById('pack-visual').classList.remove('shaking');
             document.getElementById('c-name').innerText = currentCard.name;
-            document.getElementById('c-class').innerText = currentCard.class;
+            document.getElementById('c-class').innerText = currentCard.class.toUpperCase();
             document.getElementById('c-rat').innerText = currentCard.rating;
             document.getElementById('c-rarity').innerText = currentCard.rarity;
             document.getElementById('flipper').style.transform = "rotateY(180deg)";
-            
             let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
             col.push(currentCard);
             localStorage.setItem('my_collection', JSON.stringify(col));
@@ -218,7 +197,7 @@
 
     function renderStarter() {
         let col = JSON.parse(localStorage.getItem('my_collection') || "[]");
-        if(col.length === 0) document.getElementById('starter-section').innerHTML = `<button onclick="startFreePack()" style="width:280px; padding:10px; border:2px dashed #00fbff; background:none; color:#00fbff; cursor:pointer;">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР</button>`;
+        if(col.length === 0) document.getElementById('starter-section').innerHTML = `<button onclick="startFreePack()" style="width:280px; padding:12px; border:2px dashed #00fbff; background:none; color:#00fbff; cursor:pointer; border-radius:10px; font-weight:bold;">ОТКРЫТЬ НАЧАЛЬНЫЙ НАБОР (8 КАРТ)</button>`;
     }
 
     function startFreePack() {
@@ -226,7 +205,6 @@
         localStorage.setItem('my_collection', JSON.stringify(set));
         location.reload();
     }
-
     renderStarter();
 </script>
 </body>

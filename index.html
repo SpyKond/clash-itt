@@ -56,12 +56,10 @@
         .play { background: linear-gradient(#4CAF50, #2E7D32); box-shadow: 0 4px 15px rgba(76,175,80,0.3); }
         .shop { background: linear-gradient(#ff9800, #ef6c00); box-shadow: 0 4px 15px rgba(255,152,0,0.3); }
         .decks { background: linear-gradient(#2196F3, #1565C0); box-shadow: 0 4px 15px rgba(33,150,243,0.3); }
-        .profile-btn { background: #333; border: 1px solid #555; font-size: 14px; padding: 10px; }
-
-        /* Модалка ника */
+        
         #naming-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10000; }
         .naming-box { background:#111; padding:30px; border-radius:20px; border:2px solid #00fbff; text-align:center; }
-        input { padding:12px; border-radius:10px; border:none; width:200px; margin:15px 0; text-align:center; font-size:18px; }
+        .naming-box input { padding:12px; border-radius:10px; border:none; width:200px; margin:15px 0; text-align:center; font-size:18px; background:#222; color:white; }
         
         .hint { position: absolute; bottom: 20px; color: #333; font-size: 10px; text-transform: uppercase; }
     </style>
@@ -76,22 +74,22 @@
         <button onclick="checkDeck()" class="menu-btn play">В БОЙ!</button>
         <button onclick="location.href='shop.html'" class="menu-btn shop">МАГАЗИН</button>
         <button onclick="location.href='decks.html'" class="menu-btn decks">СОСТАВЫ</button>
-        <button onclick="location.href='profile.html'" class="menu-btn profile-btn">МОЙ ПРОФИЛЬ</button>
     </div>
 
     <div id="naming-overlay" style="display:none;">
         <div class="naming-box">
             <h2>КТО ТЫ, ВОИН?</h2>
-            <p style="color:#888;">Придумай себе никнейм</p>
             <input type="text" id="nick-input" placeholder="Введите ник...">
             <br>
             <button onclick="saveInitialProfile()" class="menu-btn play" style="padding:10px 30px; font-size:16px;">НАЧАТЬ</button>
         </div>
     </div>
 
-    <div class="hint">F12 - Админ Панель | R - Сброс</div>
+    <div class="hint">F12 - Админ | F11 - Сброс</div>
 
     <script>
+        const DB_URL = "https://clashofit-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
         function updateUI() {
             if (!localStorage.getItem('it_coins')) {
                 localStorage.setItem('it_coins', '500');
@@ -99,8 +97,6 @@
                 localStorage.setItem('active_deck', '[]');
             }
             document.getElementById('coin-count').innerText = localStorage.getItem('it_coins');
-
-            // Проверка профиля
             if (!localStorage.getItem('user_profile')) {
                 document.getElementById('naming-overlay').style.display = 'flex';
             }
@@ -109,29 +105,19 @@
         function saveInitialProfile() {
             let nick = document.getElementById('nick-input').value.trim();
             if (nick.length < 2) return alert("Ник слишком короткий!");
-            
-            let profile = {
-                name: nick,
-                id: "ID-" + Math.floor(Math.random() * 900000 + 100000),
-                wins: 0, losses: 0, draws: 0
-            };
-            localStorage.setItem('user_profile', JSON.stringify(profile));
+            localStorage.setItem('user_profile', JSON.stringify({name: nick, id: "ID-"+Math.floor(Math.random()*900000+100000)}));
             document.getElementById('naming-overlay').style.display = 'none';
         }
 
-        // АДМИН ПАНЕЛЬ
         window.addEventListener('keydown', function(e) {
             if (e.key === 'F12' || e.code === 'Backquote') {
                 e.preventDefault();
                 showAdminPanel();
             }
             if (e.key === 'F11') {
-    e.preventDefault(); // Это важно, чтобы браузер не переходил в полноэкранный режим
-    if(confirm("Сбросить все данные профиля, монеты и карты?")) { 
-        localStorage.clear(); 
-        location.reload(); 
-    }
-}
+                e.preventDefault();
+                if(confirm("Сбросить всё прогресс?")) { localStorage.clear(); location.reload(); }
+            }
         });
 
         function showAdminPanel() {
@@ -140,36 +126,40 @@
             box.id = 'admin-box';
             box.style = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; padding:20px; border:2px solid gold; border-radius:15px; z-index:20000; color:white; display:flex; flex-direction:column; gap:8px; width:280px; font-size:12px;";
             box.innerHTML = `
-                <h3 style="color:gold; margin:0; text-align:center;">КОНСТРУКТОР КОДОВ</h3>
-                Название: <input type="text" id="adm-n" placeholder="NEWCODE" style="padding:5px; margin:0;">
-                Дней: <input type="number" id="adm-d" value="7" style="padding:5px; margin:0;">
-                Монет: <input type="number" id="adm-c" value="0" style="padding:5px; margin:0;">
-                Пак: <select id="adm-p" style="padding:5px;"><option value="none">Нет</option><option value="common">Обычный</option><option value="epic">Эпик</option><option value="legend">Легенда</option></select>
-                <button onclick="genAdminCode()" style="background:gold; border:none; padding:8px; font-weight:bold; margin-top:10px;">СОЗДАТЬ</button>
-                <textarea id="adm-res" style="display:none; margin-top:10px; height:40px; color:black;"></textarea>
-                <button onclick="this.parentElement.remove()" style="background:none; color:grey; border:none;">Закрыть</button>
+                <h3 style="color:gold; margin:0; text-align:center;">ОБЛАЧНЫЙ АДМИН</h3>
+                Название: <input type="text" id="adm-n" placeholder="NEWCODE" style="padding:5px; background:#000; color:#fff; border:1px solid #333;">
+                Дней: <input type="number" id="adm-d" value="7" style="padding:5px; background:#000; color:#fff; border:1px solid #333;">
+                Монет: <input type="number" id="adm-c" value="0" style="padding:5px; background:#000; color:#fff; border:1px solid #333;">
+                Пак: <select id="adm-p" style="padding:5px; background:#000; color:#fff;"><option value="none">Нет</option><option value="common">Обычный</option><option value="epic">Эпик</option><option value="legend">Легенда</option></select>
+                <button onclick="genAdminCode()" style="background:gold; border:none; padding:10px; font-weight:bold; cursor:pointer; margin-top:5px;">ОТПРАВИТЬ В ОБЛАКО</button>
+                <button onclick="this.parentElement.remove()" style="background:none; color:grey; border:none; cursor:pointer;">Закрыть</button>
             `;
             document.body.appendChild(box);
         }
 
-        function genAdminCode() {
-            let n = document.getElementById('adm-n').value.toUpperCase();
+        async function genAdminCode() {
+            let n = document.getElementById('adm-n').value.toUpperCase().trim();
+            if(!n) return alert("Введите название!");
             let d = document.getElementById('adm-d').value;
             let c = document.getElementById('adm-c').value;
             let p = document.getElementById('adm-p').value;
             let exp = Date.now() + (d * 24 * 60 * 60 * 1000);
-            let res = `"${n}": { coins: ${c}, pack: "${p}", expire: ${exp} },`;
-            let area = document.getElementById('adm-res');
-            area.value = res; area.style.display = 'block'; area.select();
-            alert("Код в текстовом поле. Скопируй и вставь в shop.html");
+
+            try {
+                await fetch(`${DB_URL}promos/${n}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ coins: parseInt(c), pack: p, expire: exp })
+                });
+                alert("✅ КОД " + n + " ТЕПЕРЬ РАБОТАЕТ У ВСЕХ!");
+                document.getElementById('admin-box').remove();
+            } catch (e) { alert("Ошибка сети!"); }
         }
 
         function checkDeck() {
             let deck = JSON.parse(localStorage.getItem('active_deck') || "[]").filter(c => c !== null);
-            if (deck.length < 8) alert("Нужно 8 карт в составе!");
+            if (deck.length < 8) alert("В составе должно быть 8 карт!");
             else location.href = 'game.html';
         }
-
         updateUI();
     </script>
 </body>
