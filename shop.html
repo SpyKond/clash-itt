@@ -12,11 +12,18 @@
         .gift-box { width: 130px; padding: 10px; border-radius: 15px; text-align: center; cursor: pointer; border: 2px dashed #fff; }
         .gift-blue { background: rgba(0, 251, 255, 0.1); border-color: #00fbff; }
         .gift-gold { background: rgba(255, 215, 0, 0.1); border-color: gold; }
+        
         .pack-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; perspective: 1000px; }
-        .pack-card { width: 120px; height: 170px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; }
+        .pack-card { width: 120px; height: 170px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
         .pack-card.flipped { transform: rotateY(180deg); }
         .pack-front, .pack-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; }
         .pack-back { transform: rotateY(180deg); background: #1a1a1a; font-size: 10px; padding: 5px; text-align: center; }
+        
+        /* Цвета и свечение паков */
+        .pack-card.common .pack-front { border-color: #888; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .pack-card.epic .pack-front { border-color: #9C27B0; box-shadow: 0 0 15px rgba(156,39,176,0.3); color: #e1bee7; }
+        .pack-card.legend .pack-front { border-color: gold; box-shadow: 0 0 20px rgba(255,215,0,0.4); color: gold; }
+        
         .promo-box { margin-top: 30px; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; width: 260px; text-align: center; box-shadow: 0 0 20px rgba(0,251,255,0.1); }
         .promo-box input { background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; width: 80%; text-align: center; text-transform: uppercase; font-weight: bold; }
         .promo-box button { background: #00fbff; color: black; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; width: 88%; }
@@ -48,15 +55,15 @@
     <div id="starter-section" style="margin: 15px 0;"></div>
     
     <div class="pack-container">
-        <div class="pack-card" id="p-common" onclick="toggleInfo('p-common')">
+        <div class="pack-card common" id="p-common" onclick="toggleInfo('p-common')">
             <div class="pack-front" onclick="buyPack('common', 150)">📦<b>ОБЫЧНЫЙ</b><p>150 C</p></div>
             <div class="pack-back"><b>ШАНСЫ:</b><br>Обыч: 85%<br>Ред: 14%<br>Эпик: 1%</div>
         </div>
-        <div class="pack-card" id="p-epic" onclick="toggleInfo('p-epic')">
+        <div class="pack-card epic" id="p-epic" onclick="toggleInfo('p-epic')">
             <div class="pack-front" onclick="buyPack('epic', 300)">💎<b>ЭПИЧЕСКИЙ</b><p>300 C</p></div>
             <div class="pack-back"><b>ШАНСЫ:</b><br>Ред: 70%<br>Эпик: 28%<br>Миф: 2%</div>
         </div>
-        <div class="pack-card" id="p-legend" onclick="toggleInfo('p-legend')">
+        <div class="pack-card legend" id="p-legend" onclick="toggleInfo('p-legend')">
             <div class="pack-front" onclick="buyPack('legend', 500)">👑<b>ЛЕГЕНДА</b><p>500 C</p></div>
             <div class="pack-back"><b>ШАНСЫ:</b><br>Ред: 20%<br>Эпик: 70%<br>Миф: 10%</div>
         </div>
@@ -104,6 +111,16 @@
     document.getElementById('coins-val').innerText = coins;
     let currentCard = null;
     let isOpening = false;
+
+    window.onload = () => {
+        let pending = localStorage.getItem('pending_pack');
+        if(pending) {
+            localStorage.removeItem('pending_pack');
+            let r = pending === 'legend' ? (Math.random() > 0.1 ? 'эпический' : 'мифический') : (pending === 'epic' ? (Math.random() > 0.3 ? 'редкий' : 'эпический') : 'обычный');
+            currentCard = generateCard(r);
+            setupOverlay(pending);
+        }
+    }
 
     async function activatePromo() {
         const val = document.getElementById('promo-input').value.trim().toUpperCase();
@@ -157,6 +174,12 @@
         isOpening = false;
         document.getElementById('flipper').style.transform = "rotateY(0deg)";
         document.getElementById('pack-icon').innerText = type === 'legend' ? "👑" : (type === 'epic' ? "💎" : "📦");
+        
+        // Цвет рамки оверлея в зависимости от типа пака
+        let color = type === 'legend' ? 'gold' : (type === 'epic' ? '#9C27B0' : '#00fbff');
+        document.getElementById('pack-visual').style.borderColor = color;
+        document.getElementById('card-result').style.borderColor = color;
+        
         document.getElementById('opening-overlay').style.display = 'flex';
         document.getElementById('claim-btn').style.display = 'none';
     }
